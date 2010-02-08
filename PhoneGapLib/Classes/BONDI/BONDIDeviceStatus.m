@@ -59,8 +59,8 @@
 	
 	//Battery (batteryCapacity, batteryTime : no information)
 	device.batteryMonitoringEnabled = YES;
-	//TODO: P2 what is the correct data type for batteryLevel ? Percent or Float
-	[devProps setObject:[NSString stringWithFormat:@"%f",[device batteryLevel]] forKey:@"batteryLevel"];
+	//batteryLevel = Integer 
+	[devProps setObject:[NSString stringWithFormat:@"%.0f",[device batteryLevel]*100] forKey:@"batteryLevel"];
 	[devProps setObject:@"Li-Ion" forKey:@"batteryTechnology"];
 	
 	UIDeviceBatteryState batteryState = device.batteryState;
