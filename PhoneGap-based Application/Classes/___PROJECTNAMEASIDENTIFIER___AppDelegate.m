@@ -8,6 +8,7 @@
 
 #import "___PROJECTNAMEASIDENTIFIER___AppDelegate.h"
 #import "PhoneGapViewController.h"
+#import "HTTPServer.h"
 
 @implementation ___PROJECTNAMEASIDENTIFIER___AppDelegate
 
@@ -25,6 +26,14 @@
 - (void)applicationDidFinishLaunching:(UIApplication *)application
 {	
 	[ super applicationDidFinishLaunching:application ];
+	[[HTTPServer sharedHTTPServer] start];
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application
+{
+	
+	[[HTTPServer sharedHTTPServer] stop];
+	
 }
 
 -(id) getCommandInstance:(NSString*)className

@@ -348,7 +348,7 @@
 				);
 				PREBINDING = NO;
 				SDKROOT = iphonesimulator3.0;
-				USER_HEADER_SEARCH_PATHS = "$(PHONEGAPLIB)/Classes";
+				USER_HEADER_SEARCH_PATHS = "$(PHONEGAPLIB)/Classes/**";
 			};
 			name = Debug;
 		};
