@@ -41,7 +41,7 @@
     NSMutableDictionary *commandObjects;
     NSURL *invokedURL;
 }
-
+@property (nonatomic, retain) UIWebView *webView;
 @property (nonatomic, retain) UIWindow *window;
 @property (nonatomic, retain) PhoneGapViewController *viewController;
 @property (nonatomic, retain) UIActivityIndicatorView *activityView;
@@ -57,7 +57,6 @@
 + (NSDictionary*)getBundlePlist:(NSString *)plistName;
 + (NSString*) wwwFolderName;
 + (NSString*) pathForResource:(NSString*)resourcepath;
-+ (NSString*) phoneGapVersion;
 + (NSString*) applicationDocumentsDirectory;
 
 @end

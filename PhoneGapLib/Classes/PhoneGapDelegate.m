@@ -12,6 +12,7 @@
 @synthesize commandObjects;
 @synthesize settings;
 @synthesize invokedURL;
+@synthesize webView;
 
 - (id) init
 {
@@ -47,23 +48,6 @@
 					   ofType:@""
                        inDirectory:directoryStr];
 }
-
-/**
-Returns the current version of phoneGap as read from the VERSION file
-This only touches the filesystem once and stores the result in the class variable gapVersion
-*/
-static NSString *gapVersion;
-+ (NSString*) phoneGapVersion
-{
-	if (gapVersion == nil) {
-		NSBundle *mainBundle = [NSBundle mainBundle];
-		NSString *filename = [mainBundle pathForResource:@"VERSION" ofType:nil];
-		// read from the filesystem and save in the variable
-		gapVersion = [ [ NSString stringWithContentsOfFile:filename encoding:NSUTF8StringEncoding error:NULL ] retain ];
-	}
-	return gapVersion;
-}
-
 
 /**
  Returns an instance of a PhoneGapCommand object, based on its name.  If one exists already, it is returned.
@@ -212,9 +196,23 @@ static NSString *gapVersion;
  When web application loads Add stuff to the DOM, mainly the user-defined settings from the Settings.plist file, and
  the device's data such as device ID, platform version, etc.
  */
-- (void)webViewDidStartLoad:(UIWebView *)theWebView 
-{
+- (void)webViewDidStartLoad:(UIWebView *)theWebView {
+	NSDictionary *deviceProperties = [[self getCommandInstance:@"Device"] deviceProperties];
+    NSMutableString *result = [[NSMutableString alloc] initWithFormat:@"DeviceInfo = %@;", [deviceProperties JSONFragment]];
+    
+    /* Settings.plist
+	 * Read the optional Settings.plist file and push these user-defined settings down into the web application.
+	 * This can be useful for supplying build-time configuration variables down to the app to change its behaviour,
+     * such as specifying Full / Lite version, or localization (English vs German, for instance).
+	 */
+    NSDictionary *temp = [PhoneGapDelegate getBundlePlist:@"Settings"];
+    if ([temp respondsToSelector:@selector(JSONFragment)]) {
+        [result appendFormat:@"\nwindow.Settings = %@;", [temp JSONFragment]];
+    }
 
+    NSLog(@"Device initialization: %@", result);
+    [theWebView stringByEvaluatingJavaScriptFromString:result];
+	[result release];
     
 	// Play any default movie
 	if(![[[UIDevice currentDevice] model] isEqualToString:@"iPhone Simulator"]) {
@@ -306,25 +304,6 @@ static NSString *gapVersion;
 	/*
 	 * Hide the Top Activity THROBER in the Battery Bar
 	 */
-	
-	NSDictionary *deviceProperties = [[self getCommandInstance:@"Device"] deviceProperties];
-    NSMutableString *result = [[NSMutableString alloc] initWithFormat:@"DeviceInfo = %@;", [deviceProperties JSONFragment]];
-    
-    /* Settings.plist
-	 * Read the optional Settings.plist file and push these user-defined settings down into the web application.
-	 * This can be useful for supplying build-time configuration variables down to the app to change its behaviour,
-     * such as specifying Full / Lite version, or localization (English vs German, for instance).
-	 */
-	
-    NSDictionary *temp = [PhoneGapDelegate getBundlePlist:@"Settings"];
-    if ([temp respondsToSelector:@selector(JSONFragment)]) {
-        [result appendFormat:@"\nwindow.Settings = %@;", [temp JSONFragment]];
-    }
-	
-    NSLog(@"Device initialization: %@", result);
-    [theWebView stringByEvaluatingJavaScriptFromString:result];
-	[result release];
-	
 	[[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:NO];
 	activityView.hidden = YES;	
 

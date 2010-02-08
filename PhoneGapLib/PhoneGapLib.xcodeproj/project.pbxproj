@@ -72,7 +72,22 @@
 		8887FDA21090FBE7009987E8 /* UIControls.m in Sources */ = {isa = PBXBuildFile; fileRef = 8887FD631090FBE7009987E8 /* UIControls.m */; };
 		88BA573D109BB46F00FB5E78 /* Accelerometer.h in Headers */ = {isa = PBXBuildFile; fileRef = 88BA573B109BB46F00FB5E78 /* Accelerometer.h */; };
 		88BA573E109BB46F00FB5E78 /* Accelerometer.m in Sources */ = {isa = PBXBuildFile; fileRef = 88BA573C109BB46F00FB5E78 /* Accelerometer.m */; };
+		A782A45A10BD5881004D1467 /* BONDIFilesystem.m in Sources */ = {isa = PBXBuildFile; fileRef = A782A45610BD5881004D1467 /* BONDIFilesystem.m */; };
+		A782A45B10BD5881004D1467 /* BONDICamera.h in Headers */ = {isa = PBXBuildFile; fileRef = A782A45710BD5881004D1467 /* BONDICamera.h */; };
+		A782A45C10BD5881004D1467 /* BONDICamera.m in Sources */ = {isa = PBXBuildFile; fileRef = A782A45810BD5881004D1467 /* BONDICamera.m */; };
+		A782A45D10BD5881004D1467 /* BONDIFilesystem.h in Headers */ = {isa = PBXBuildFile; fileRef = A782A45910BD5881004D1467 /* BONDIFilesystem.h */; };
+		A78A655F10C3E3D50083989F /* PhoneGapResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = A78A655810C3E3D50083989F /* PhoneGapResponse.h */; };
+		A78A656010C3E3D50083989F /* PhoneGapResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = A78A655910C3E3D50083989F /* PhoneGapResponse.m */; };
+		A78A656110C3E3D50083989F /* SynthesizeSingleton.h in Headers */ = {isa = PBXBuildFile; fileRef = A78A655A10C3E3D50083989F /* SynthesizeSingleton.h */; };
+		A78A656210C3E3D50083989F /* HTTPServer.h in Headers */ = {isa = PBXBuildFile; fileRef = A78A655B10C3E3D50083989F /* HTTPServer.h */; };
+		A78A656310C3E3D50083989F /* HTTPServer.m in Sources */ = {isa = PBXBuildFile; fileRef = A78A655C10C3E3D50083989F /* HTTPServer.m */; };
+		A78A656410C3E3D50083989F /* HTTPResponseHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = A78A655D10C3E3D50083989F /* HTTPResponseHandler.h */; };
+		A78A656510C3E3D50083989F /* HTTPResponseHandler.m in Sources */ = {isa = PBXBuildFile; fileRef = A78A655E10C3E3D50083989F /* HTTPResponseHandler.m */; };
+		A7B5D98110D68EE9001AE108 /* BONDIErrorCodes.h in Headers */ = {isa = PBXBuildFile; fileRef = A7B5D97F10D68EE9001AE108 /* BONDIErrorCodes.h */; };
+		A7B5D98210D68EE9001AE108 /* BONDIErrorCodes.m in Sources */ = {isa = PBXBuildFile; fileRef = A7B5D98010D68EE9001AE108 /* BONDIErrorCodes.m */; };
 		AA747D9F0F9514B9006C5449 /* PhoneGapLib_Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = AA747D9E0F9514B9006C5449 /* PhoneGapLib_Prefix.pch */; };
+		EF245EAD11074B9E0096CEF1 /* BONDIDeviceStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = EF245EAB11074B9E0096CEF1 /* BONDIDeviceStatus.h */; };
+		EF245EAE11074B9E0096CEF1 /* BONDIDeviceStatus.m in Sources */ = {isa = PBXBuildFile; fileRef = EF245EAC11074B9E0096CEF1 /* BONDIDeviceStatus.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -141,8 +156,23 @@
 		8887FD631090FBE7009987E8 /* UIControls.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = UIControls.m; path = Classes/UIControls.m; sourceTree = "<group>"; };
 		88BA573B109BB46F00FB5E78 /* Accelerometer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Accelerometer.h; path = Classes/Accelerometer.h; sourceTree = "<group>"; };
 		88BA573C109BB46F00FB5E78 /* Accelerometer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = Accelerometer.m; path = Classes/Accelerometer.m; sourceTree = "<group>"; };
+		A782A45610BD5881004D1467 /* BONDIFilesystem.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BONDIFilesystem.m; path = Classes/BONDI/BONDIFilesystem.m; sourceTree = SOURCE_ROOT; };
+		A782A45710BD5881004D1467 /* BONDICamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BONDICamera.h; path = Classes/BONDI/BONDICamera.h; sourceTree = SOURCE_ROOT; };
+		A782A45810BD5881004D1467 /* BONDICamera.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BONDICamera.m; path = Classes/BONDI/BONDICamera.m; sourceTree = SOURCE_ROOT; };
+		A782A45910BD5881004D1467 /* BONDIFilesystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BONDIFilesystem.h; path = Classes/BONDI/BONDIFilesystem.h; sourceTree = SOURCE_ROOT; };
+		A78A655810C3E3D50083989F /* PhoneGapResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PhoneGapResponse.h; sourceTree = "<group>"; };
+		A78A655910C3E3D50083989F /* PhoneGapResponse.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PhoneGapResponse.m; sourceTree = "<group>"; };
+		A78A655A10C3E3D50083989F /* SynthesizeSingleton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SynthesizeSingleton.h; sourceTree = "<group>"; };
+		A78A655B10C3E3D50083989F /* HTTPServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPServer.h; sourceTree = "<group>"; };
+		A78A655C10C3E3D50083989F /* HTTPServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPServer.m; sourceTree = "<group>"; };
+		A78A655D10C3E3D50083989F /* HTTPResponseHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTTPResponseHandler.h; sourceTree = "<group>"; };
+		A78A655E10C3E3D50083989F /* HTTPResponseHandler.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HTTPResponseHandler.m; sourceTree = "<group>"; };
+		A7B5D97F10D68EE9001AE108 /* BONDIErrorCodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BONDIErrorCodes.h; path = Classes/BONDI/BONDIErrorCodes.h; sourceTree = "<group>"; };
+		A7B5D98010D68EE9001AE108 /* BONDIErrorCodes.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BONDIErrorCodes.m; path = Classes/BONDI/BONDIErrorCodes.m; sourceTree = "<group>"; };
 		AA747D9E0F9514B9006C5449 /* PhoneGapLib_Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PhoneGapLib_Prefix.pch; sourceTree = SOURCE_ROOT; };
 		D2AAC07E0554694100DB518D /* libPhoneGapLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPhoneGapLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		EF245EAB11074B9E0096CEF1 /* BONDIDeviceStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BONDIDeviceStatus.h; path = Classes/BONDI/BONDIDeviceStatus.h; sourceTree = "<group>"; };
+		EF245EAC11074B9E0096CEF1 /* BONDIDeviceStatus.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BONDIDeviceStatus.m; path = Classes/BONDI/BONDIDeviceStatus.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -193,6 +223,7 @@
 		888700D710922F56009987E8 /* Commands */ = {
 			isa = PBXGroup;
 			children = (
+				A782A45110BD586C004D1467 /* BONDI */,
 				88BA573B109BB46F00FB5E78 /* Accelerometer.h */,
 				88BA573C109BB46F00FB5E78 /* Accelerometer.m */,
 				8887FD241090FBE7009987E8 /* Bonjour.h */,
@@ -295,6 +326,37 @@
 			path = Classes/JSON;
 			sourceTree = "<group>";
 		};
+		A782A45110BD586C004D1467 /* BONDI */ = {
+			isa = PBXGroup;
+			children = (
+				A78A655710C3E3D50083989F /* HTTPServer */,
+				A782A45910BD5881004D1467 /* BONDIFilesystem.h */,
+				A782A45610BD5881004D1467 /* BONDIFilesystem.m */,
+				A782A45710BD5881004D1467 /* BONDICamera.h */,
+				A782A45810BD5881004D1467 /* BONDICamera.m */,
+				A7B5D97F10D68EE9001AE108 /* BONDIErrorCodes.h */,
+				A7B5D98010D68EE9001AE108 /* BONDIErrorCodes.m */,
+				EF245EAB11074B9E0096CEF1 /* BONDIDeviceStatus.h */,
+				EF245EAC11074B9E0096CEF1 /* BONDIDeviceStatus.m */,
+			);
+			name = BONDI;
+			sourceTree = "<group>";
+		};
+		A78A655710C3E3D50083989F /* HTTPServer */ = {
+			isa = PBXGroup;
+			children = (
+				A78A655810C3E3D50083989F /* PhoneGapResponse.h */,
+				A78A655910C3E3D50083989F /* PhoneGapResponse.m */,
+				A78A655A10C3E3D50083989F /* SynthesizeSingleton.h */,
+				A78A655B10C3E3D50083989F /* HTTPServer.h */,
+				A78A655C10C3E3D50083989F /* HTTPServer.m */,
+				A78A655D10C3E3D50083989F /* HTTPResponseHandler.h */,
+				A78A655E10C3E3D50083989F /* HTTPResponseHandler.m */,
+			);
+			name = HTTPServer;
+			path = Classes/BONDI/HTTPServer;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -336,6 +398,14 @@
 				8887FD9F1090FBE7009987E8 /* Sound.h in Headers */,
 				8887FDA11090FBE7009987E8 /* UIControls.h in Headers */,
 				88BA573D109BB46F00FB5E78 /* Accelerometer.h in Headers */,
+				A782A45B10BD5881004D1467 /* BONDICamera.h in Headers */,
+				A782A45D10BD5881004D1467 /* BONDIFilesystem.h in Headers */,
+				A78A655F10C3E3D50083989F /* PhoneGapResponse.h in Headers */,
+				A78A656110C3E3D50083989F /* SynthesizeSingleton.h in Headers */,
+				A78A656210C3E3D50083989F /* HTTPServer.h in Headers */,
+				A78A656410C3E3D50083989F /* HTTPResponseHandler.h in Headers */,
+				A7B5D98110D68EE9001AE108 /* BONDIErrorCodes.h in Headers */,
+				EF245EAD11074B9E0096CEF1 /* BONDIDeviceStatus.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -433,6 +503,13 @@
 				8887FDA01090FBE7009987E8 /* Sound.m in Sources */,
 				8887FDA21090FBE7009987E8 /* UIControls.m in Sources */,
 				88BA573E109BB46F00FB5E78 /* Accelerometer.m in Sources */,
+				A782A45A10BD5881004D1467 /* BONDIFilesystem.m in Sources */,
+				A782A45C10BD5881004D1467 /* BONDICamera.m in Sources */,
+				A78A656010C3E3D50083989F /* PhoneGapResponse.m in Sources */,
+				A78A656310C3E3D50083989F /* HTTPServer.m in Sources */,
+				A78A656510C3E3D50083989F /* HTTPResponseHandler.m in Sources */,
+				A7B5D98210D68EE9001AE108 /* BONDIErrorCodes.m in Sources */,
+				EF245EAE11074B9E0096CEF1 /* BONDIDeviceStatus.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
