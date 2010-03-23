@@ -69,7 +69,6 @@
 	else {
 		[devProps setObject:@"false" forKey:@"batteryBeingCharged"];
 	}
-	
 	return [devProps objectForKey:property];
 	
 }
@@ -128,12 +127,16 @@
 											repeats: YES];
 		[timers addObject:timerMax];
 	}
-	
-	if (callCallbackOnRegister)
-		[timerMin fire];
-
 	[listeners addObject:timers];
 	[oldValues addObject:[NSNumber numberWithInt:-1]]; //no old value = -1
+	
+	if (callCallbackOnRegister){
+		[NSTimer scheduledTimerWithTimeInterval: 0.1
+										 target: self
+									   selector: @selector(handleCallback:)
+									   userInfo: watchPropertyInfo
+										repeats: NO];
+	}
 	
 	return [NSString stringWithFormat:@"%i",[listeners count]-1]; //count as id, since properties are added as last object
 }
