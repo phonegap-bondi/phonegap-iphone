@@ -1,7 +1,5 @@
-//TODO: P2 characters like '#' in parameters cause problems with HTTP URL (see PhoneGapResponse) - parameters could be sent in HTTP body
 //Helper methods
 //XHR
-//example:  http://localhost:8080/<className>/<methodName>;arg1;arg2?option1=something&option2=other
 var HTTP = {
 	get: function (url,headerValue) {
 		var xhr = new XMLHttpRequest();
@@ -99,29 +97,32 @@ CameraError.CAMERA_CAPTURE_ERROR = 1;
 CameraError.CAMERA_LIVEVIDEO_ERROR = 2;
 
 function BondiCamera() {
+    this.ZOOM = 0;
+    this.ZOOM_NOZOOM = 1;
+    this.CONTRAST = 2;
+    this.BRIGHTNESS = 3;
+    this.COLORTEMPERATURE = 4;
+    this.NIGHTMODE = 5;
+    this.NIGHTMODE_OFF = 0;
+    this.NIGHTMODE_ON = 1;
+    this.MANUALFOCUS = 6;
+    this.MANUALFOCUS_ON = 1;
+    this.MANUALFOCUS_OFF = 0;
+    this.FOCUS = 7;
+    this.LIGHT = 8;
+    this.FLASH = 9;
+    this.FLASH_NO_FLASH = 0;
+    this.FLASH_AUTOFLASH = 1;
+    this.FLASH_FORCEDFLASH = 2;
+    this.description = 'iphonecam';
 }
-Camera.ZOOM = 0;
-Camera.ZOOM_NOZOOM = 1;
-Camera.CONTRAST = 2;
-Camera.BRIGHTNESS = 3;
-Camera.COLORTEMPERATURE = 4;
-Camera.NIGHTMODE = 5;
-Camera.NIGHTMODE_OFF = 0;
-Camera.NIGHTMODE_ON = 1;
-Camera.MANUALFOCUS = 6;
-Camera.MANUALFOCUS_ON = 1;
-Camera.MANUALFOCUS_OFF = 0;
-Camera.FOCUS = 7;
-Camera.LIGHT = 8;
-Camera.FLASH = 9;
-Camera.FLASH_NO_FLASH = 0;
-Camera.FLASH_AUTOFLASH = 1;
-Camera.FLASH_FORCEDFLASH = 2;
-Camera.description = 'iphonecam';
+
 
 BondiCamera.prototype.takePicture = function(successCallback, errorCallback, options) {
 	bondi.camera.successCallback = successCallback;
 	bondi.camera.errorCallback = errorCallback;
+	if (options == undefined)
+		options = {};
 	HTTP.get('http://localhost:8080/BONDICamera/takePicture',JSON.stringify(options));
     return new PendingOperation();
 }
