@@ -37,7 +37,8 @@
 -(BOOL)boolWithString:(NSString*)boolString{
 	return [boolString isEqualToString:@"true"] ? YES : NO;
 }
-//needed for copyTo and moveTo
+
+//needed for async functions (copyTo, moveTo etc.)
 - (void)createCallbackDelayed:(NSTimer*)timer {
 	NSLog(@"BONDIFilesystem.createCallbackDelayed");
 	NSArray *callbackInfo = [timer userInfo];
@@ -56,6 +57,7 @@
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
 	}
+	NSLog(@"createCallbackDelayed done");
 }
 
 - (void)createCallback:(NSString*)callback withFunction:(id)function withString:(id)string {
@@ -153,7 +155,7 @@
 	else
 		return nil;
 }
-
+/*
 - (NSString *)resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 
 	NSUInteger argc = [arguments count];
@@ -164,7 +166,34 @@
 	return [self resolveLocation:location];
 	
 }
-
+*/
+//TODO: resolve mode parameter handling
+//TODO: blocking in callback
+- (NSString *)resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
+	NSUInteger argc = [arguments count];
+	NSString* successCallback = nil, *errorCallback = nil, *location = nil, *mode = nil;
+	NSTimer *timer;
+	
+	successCallback = @"bondi.filesystem.fileSystemResolveSuccess";
+	errorCallback =  @"bondi.filesystem.fileSystemError";
+	if (argc > 0) location = [arguments objectAtIndex:0];
+	if (argc > 1) mode = [arguments objectAtIndex:1];
+	
+	NSLog(@"[INFO] BONDIFilesystem.resolve: %@ %@",location,mode);	
+	
+	NSString *resolvedLocation = [self resolveLocation:location];
+	if ([resolvedLocation isEqualToString:[NSString stringWithFormat:@"%i", INVALID_ARGUMENT_ERROR]]){
+		NSString *parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", INVALID_ARGUMENT_ERROR];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:.1 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;
+	} else {
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:.1 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;
+	}
+	NSLog(@"resolve done");
+}
 #pragma mark -
 #pragma mark File
 
@@ -366,7 +395,7 @@
 	
 }
 
-
+//TODO: deleteDirectory 1.1 with callbacks
 - (NSString *)deleteDirectory:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	NSUInteger argc = [arguments count];

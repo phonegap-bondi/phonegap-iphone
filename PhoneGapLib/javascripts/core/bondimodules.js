@@ -53,18 +53,25 @@ if (typeof(bondi) != 'object')
     bondi = {};
 
 bondi.requestFeature = function ( successCallback,  errorCallback,  name){
-	if (name.startsWith('http://bondi.omtp.org/api/filesystem'))
+	if (name.startsWith('http://bondi.omtp.org/api/1.1/filesystem'))
 		successCallback(new FileSystemManager());
-	else if(name.startsWith('http://bondi.omtp.org/api/devicestatus'))
+	else if(name.startsWith('http://bondi.omtp.org/api/1.1/devicestatus'))
 		successCallback(new DeviceStatusManager());
-	else if(name.startsWith('http://bondi.omtp.org/api/camera'))
+	else if(name.startsWith('http://bondi.omtp.org/api/1.1/camera'))
 		successCallback(new CameraManager());
-	else if(name.startsWith('http://bondi.omtp.org/api/geolocation'))
+	else if(name.startsWith('http://bondi.omtp.org/api/1.1/geolocation'))
 		successCallback(bondi.geolocation);
 	else
 		errorCallback(new GenericError(SecurityError.PERMISSION_DENIED_ERROR));
 	return new PendingOperation();
-}; 
+};
+
+bondi.getFeatures = function () {
+    return ["http://bondi.omtp.org/api/1.1/filesystem", 
+    "http://bondi.omtp.org/api/1.1/devicestatus", 
+    "http://bondi.omtp.org/api/1.1/camera", 
+    "http://bondi.omtp.org/api/1.1/geolocation"];
+}
 
 GenericError = function(code) {
 	this.code = code;
@@ -201,7 +208,8 @@ FileSystemManager.prototype.getDefaultLocation = function(specifier) {
 FileSystemManager.prototype.getRootLocations = function() {
 	return this.rootLocations;
 }
-
+/*
+//BONDI 1.0
 FileSystemManager.prototype.resolve = function(location) {
 	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',location);
 	if (returnString == DeviceAPIError.INVALID_ARGUMENT_ERROR){
@@ -216,6 +224,29 @@ FileSystemManager.prototype.resolve = function(location) {
 		var tempFile = eval("(" + returnString + ")"); //JSON string
 		return JSONtoBondiFile(tempFile);
 	}	
+}
+*/
+
+FileSystemManager.prototype.fileSystemResolveSuccess = function(file){
+	if (file == DeviceAPIError.INVALID_ARGUMENT_ERROR){
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+		return null;
+	} else {
+		var tempFile = eval("(" + file + ")");
+		var bondiFile = JSONtoBondiFile(tempFile);
+		this.successCallback(bondiFile);
+	}
+}
+
+//BONDI 1.1
+FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
+	var supportedModes = ["r", "a", "w"];
+	if ( !(mode in arrayToObjectLiteral(supportedModes)))
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	bondi.filesystem.successCallback = successCallback;
+	bondi.filesystem.errorCallback = errorCallback;
+	HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',formatPath(location)+';'+mode);
+	return new PendingOperation();
 }
 FileSystemManager.prototype.registerEventListener = function(listener) {
 	throw new Error("Not implemented");
@@ -501,6 +532,7 @@ PhoneGap.addConstructor(function() {
 // bondi devicestatus
 
 function DeviceStatusManager() {
+    this.BONDIVocabulary = "http://bondi.omtp.org/2010/01/vocabulary"
 }
 
 function DeviceStatusError() {
@@ -512,11 +544,12 @@ DeviceStatusManager.prototype.propertyChangeSuccess = function(property,newValue
 }
 
 DeviceStatusManager.prototype.listVocabularies = function() {
-	throw new Error("Not implemented");
+	return [this.BONDIVocabulary];
 }
 
 DeviceStatusManager.prototype.setDefaultVocabulary = function(vocabulary) {
-	throw new Error("Not implemented");
+	if (vocabulary != this.BONDIVocabulary)
+		throw new GenericError(DeviceAPIError.NOT_FOUND_ERROR);
 }
 
 DeviceStatusManager.prototype.listAspects = function() {
