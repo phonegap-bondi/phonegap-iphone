@@ -228,7 +228,7 @@
 		}
 	} else {
 		if ([fileManager fileExistsAtPath:filePath]){ //overwrite is false and target file exists => IO_ERROR
-			NSLog(@"%@",[error localizedDescription]);
+			NSLog(@"fileExistsAtPath %@",[error localizedDescription]);
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
 			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
@@ -343,7 +343,7 @@
 	if (!fileHandle) {
 		return [NSString stringWithFormat:@"%i", PERMISSION_DENIED_ERROR];
 	} else {
-		return nil; //actual file return is handled in bondimodules.js
+		return [self addFileStreamAttributes:fileHandle withString:nil withPath:path];
 	}
 }
 
@@ -445,6 +445,22 @@
 #pragma mark -
 #pragma mark FileStream
 
+- (NSString *) addFileStreamAttributes:(NSFileHandle *)fileHandle withString:(NSString*)dataString withPath:(NSString*)path{
+	int filesize = -1;
+	if (path) {
+		NSFileManager *fileManager = [NSFileManager defaultManager];
+		NSDictionary *attributes = [fileManager attributesOfItemAtPath:path error:nil];
+		filesize = [attributes fileSize];
+	}
+	NSString *fileStreamAttributes = [[NSString alloc]
+									  initWithFormat:@"{ filesize: %i ,data: %@, position: %i }",
+									  filesize,
+									  dataString,  
+									  [fileHandle offsetInFile]
+									  ];
+	return fileStreamAttributes;
+}
+
 - (NSString *)seek:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSUInteger argc = [arguments count];
 	NSString *path, *mode;
@@ -476,24 +492,7 @@
 			return [NSString stringWithFormat:@"%i", IO_ERROR]; //rethrow the exception
 		}	
 	}
-	
-	return [NSString stringWithFormat:@"%i", [fileHandle offsetInFile]];
-}
-
-- (NSString *) addFileStreamAttributes:(NSFileHandle *)fileHandle withString:(NSString*)dataString withPath:(NSString*)path{
-	int filesize = -1;
-	if (path) {
-		NSFileManager *fileManager = [NSFileManager defaultManager];
-		NSDictionary *attributes = [fileManager attributesOfItemAtPath:path error:nil];
-		filesize = [attributes fileSize];
-	}
-	NSString *fileStreamAttributes = [[NSString alloc]
-						  initWithFormat:@"{ filesize: %i ,data: %@, position: %i }",
-						filesize,
-						dataString,  
-						[fileHandle offsetInFile]
-						];
-	return fileStreamAttributes;
+	return [self addFileStreamAttributes:fileHandle withString:nil withPath:path];
 }
 
 - (NSString *)read:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{

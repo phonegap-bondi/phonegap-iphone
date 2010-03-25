@@ -35,8 +35,8 @@
 - (NSString *)createDirectory:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)deleteDirectory:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)deleteFile:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
-
 //FileStream
+- (NSString *)addFileStreamAttributes:(NSFileHandle *)fileHandle withString:(NSString*)dataString withPath:(NSString*)path;
 - (NSString *)seek:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)read:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)readBytes:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;

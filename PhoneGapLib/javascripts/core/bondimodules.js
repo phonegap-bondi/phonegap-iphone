@@ -273,15 +273,18 @@ BondiFile.prototype.open = function(mode, encoding) {
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 		return null;
+	} else {	
+	//update FileStream attributes
+		var fileStream = new FileStream();
+		var fileInfo = eval("(" + returnString + ")"); //JSON string
+		fileStream._position = fileInfo.position;
+		fileStream.bytesAvailable = fileInfo.filesize!=fileStream._position?fileInfo.filesize - fileStream._position:-1;
+		fileStream._eof = (fileStream.bytesAvailable == -1);
+		
+		fileStream.absolutePath = this.absolutePath;
+		fileStream.mode = mode;
+		fileStream.encoding = encoding;
 	}
-	var fileStream = new FileStream();
-	//assign initial values
-	fileStream.eof = false;
-	fileStream._position = 0;
-	fileStream.bytesAvailable = this.fileSize;
-	fileStream.absolutePath = this.absolutePath;
-	fileStream.mode = mode;
-	fileStream.encoding = encoding;	
 	
     return fileStream;
 }
@@ -386,14 +389,22 @@ BondiFile.prototype.deleteFile = function() {
 }
 
 function FileStream(){
-    this.eof = true;
+    this._eof = true;
+	FileStream.prototype.__defineGetter__("eof", function() { return this._eof });
+	FileStream.prototype.__defineSetter__("eof", function(value) {;});
     this._position = 0;
 	FileStream.prototype.__defineGetter__("position", function() { return this._position });
 	FileStream.prototype.__defineSetter__("position", function(position) {
-										  var i = HTTP.get('http://localhost:8080/BONDIFilesystem/seek',this.absolutePath+';'+this.mode+';'+position);
-										  if (i == DeviceAPIError.IO_ERROR)
-											throw new DeviceAPIError(DeviceAPIError.IO_ERROR);
-										  this._position = i;
+										  var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/seek',this.absolutePath+';'+this.mode+';'+position);
+										  if (returnString == DeviceAPIError.IO_ERROR){
+											throw new GenericError(DeviceAPIError.IO_ERROR);
+										  } else { //update FileStream attributes
+											var fileInfo = eval("(" + returnString + ")"); //JSON string
+											this._position = fileInfo.position;
+											this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+											this._eof = (this.bytesAvailable == -1);
+											return fileInfo.data;
+										  }
 										  });
     this.bytesAvailable = -1; 
 	
@@ -405,7 +416,7 @@ function FileStream(){
 FileStream.prototype.close = function close(){
 	HTTP.get('http://localhost:8080/BONDIFilesystem/close',this.absolutePath+';'+this.mode+';'+this.encoding);
 	//reset attributes
-	this.eof = true;
+	this._eof = true;
     this._position = 0;
     this.bytesAvailable = -1;
 }
@@ -418,8 +429,8 @@ FileStream.prototype.read = function read(charCount){
 	} else { //update FileStream attributes
 		var fileInfo = eval("(" + returnString + ")"); //JSON string
 		this._position = fileInfo.position;
-		this.bytesAvailable = fileInfo.filesize - this._position;
-		this.eof = (this.bytesAvailable == 0);
+		this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+		this._eof = (this.bytesAvailable == -1);
 		return fileInfo.data;
 	}
 }
@@ -430,8 +441,8 @@ FileStream.prototype.readBytes = function readBytes(byteCount){
 	} else { //update FileStream attributes
 		var fileInfo = eval("(" + returnString + ")"); //JSON string
 		this._position = fileInfo.position;
-		this.bytesAvailable = fileInfo.filesize - this._position;
-		this.eof = (this.bytesAvailable == 0);
+		this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+		this._eof = (this.bytesAvailable == -1);
 		return fileInfo.data;
 	}
 }
@@ -442,8 +453,8 @@ FileStream.prototype.readBase64 = function readBase64(byteCount){
 	} else { //update FileStream attributes
 		var fileInfo = eval("(" + returnString + ")"); //JSON string
 		this._position = fileInfo.position;
-		this.bytesAvailable = fileInfo.filesize - this._position;
-		this.eof = (this.bytesAvailable == 0);
+		this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+		this._eof = (this.bytesAvailable == -1);
 		return fileInfo.data;
 	}
 }
@@ -454,8 +465,8 @@ FileStream.prototype.write = function write(stringData){
 	} else { //update FileStream attributes
 		var fileInfo = eval("(" + stringResult + ")"); //JSON string
 		this._position = fileInfo.position;
-		this.bytesAvailable = fileInfo.filesize - this._position;
-		this.eof = (this.bytesAvailable == 0);
+		this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+		this._eof = (this.bytesAvailable == -1);
 	}
 }
 
@@ -466,8 +477,8 @@ FileStream.prototype.writeBytes = function writeBytes(byteData){
 	} else {
 		var fileInfo = eval("(" + stringResult + ")"); //JSON string
 		this._position = fileInfo.position;
-		this.bytesAvailable = fileInfo.filesize - this._position;
-		this.eof = (this.bytesAvailable == 0);
+		this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+		this._eof = (this.bytesAvailable == -1);
 	}
 }
 FileStream.prototype.writeBase64 = function writeBase64(base64data){
@@ -477,8 +488,8 @@ FileStream.prototype.writeBase64 = function writeBase64(base64data){
 	} else {
 		var fileInfo = eval("(" + stringResult + ")"); //JSON string
 		this._position = fileInfo.position;
-		this.bytesAvailable = fileInfo.filesize - this._position;
-		this.eof = (this.bytesAvailable == 0);
+		this.bytesAvailable = fileInfo.filesize!=this._position?fileInfo.filesize - this._position:-1;
+		this._eof = (this.bytesAvailable == -1);
 	}
 }
 
