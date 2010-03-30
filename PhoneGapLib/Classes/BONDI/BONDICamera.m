@@ -27,7 +27,7 @@ NSInteger const CAMERA_LIVEVIDEO_ERROR = 2;
 			jsString = [[NSString alloc] initWithFormat:@"%@(%@);", callback, function];
 		else if (string)
 			jsString = [[NSString alloc] initWithFormat:@"%@(\"%@\");", callback, string];
-		NSLog(jsString);
+		NSLog(@"%@",jsString);
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
 	}
@@ -47,7 +47,7 @@ NSInteger const CAMERA_LIVEVIDEO_ERROR = 2;
 			jsString = [[NSString alloc] initWithFormat:@"%@(%@);", callback, function];
 		else if (string)
 			jsString = [[NSString alloc] initWithFormat:@"%@(\"%@\");", callback, string];
-		NSLog(jsString);
+		NSLog(@"%@",jsString);
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
 	}
@@ -120,7 +120,7 @@ NSInteger const CAMERA_LIVEVIDEO_ERROR = 2;
 	NSString *imgFileName = [[NSString alloc] initWithFormat:@"%@.jpg",strDate];
 	NSString *imgFile = [imageLocation stringByAppendingPathComponent:imgFileName];	
 	[UIImageJPEGRepresentation(image, quality) writeToFile:imgFile atomically:YES];
-	NSLog(imgFile);
+	NSLog(@"%@",imgFile);
 	
 	[picker dismissModalViewControllerAnimated:YES];
 	

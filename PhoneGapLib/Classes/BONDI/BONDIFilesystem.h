@@ -27,6 +27,7 @@
 - (NSString *)getDefaultLocation:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 //File
+- (NSString *)file_resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)listFiles:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)copyTo:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;
 - (NSString *)moveTo:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options;

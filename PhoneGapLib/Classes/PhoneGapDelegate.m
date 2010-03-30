@@ -438,6 +438,7 @@ static NSString *gapVersion;
     [activityView release];
 	[window release];
 	[invokedURL release];
+	[webView release];
 	
 	[super dealloc];
 }

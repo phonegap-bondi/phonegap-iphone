@@ -80,7 +80,7 @@
 		options = (NSMutableDictionary *)[self parseQueryString:[url.query stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
 	}
 	
-	//NSLog(@"Parsing HTTP.get: %@, %@, %@, %@", className, methodName, arguments.description, options.description);
+	//NSLog(@"[HTTP-Server] HTTP.get: %@, %@, %@, %@", className, methodName, arguments.description, options.description);
 
 	NSString *returnValue = nil;
 	
@@ -100,7 +100,7 @@
 		NSString* fullMethodName = [[NSString alloc] initWithFormat:@"%@:withDict:", methodName];
 		if ([obj respondsToSelector:NSSelectorFromString(fullMethodName)]){
 			returnValue = [obj performSelector:NSSelectorFromString(fullMethodName) withObject:arguments withObject:options];
-			NSLog(@"return Value: %@",returnValue);
+			NSLog(@"[HTTP-Server] response: %@",returnValue);
 			NSData *returnData = [returnValue dataUsingEncoding:NSUTF8StringEncoding];
 			
 			CFHTTPMessageRef response =

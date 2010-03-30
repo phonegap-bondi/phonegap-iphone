@@ -30,7 +30,7 @@
 	if (callback) {
 		NSString* jsString;
 		jsString = [[NSString alloc] initWithFormat:@"%@(eval(%@),\"%@\");", callback, string1, string2];
-		NSLog(jsString);
+		NSLog(@"%@",jsString);
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
 	}

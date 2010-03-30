@@ -53,11 +53,10 @@
 			jsString = [[NSString alloc] initWithFormat:@"%@(%@);", callback, function];
 		else if (string)
 			jsString = [[NSString alloc] initWithFormat:@"%@(\"%@\");", callback, string];
-		NSLog(jsString);
+		NSLog(@"%@",jsString);
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
 	}
-	NSLog(@"createCallbackDelayed done");
 }
 
 - (void)createCallback:(NSString*)callback withFunction:(id)function withString:(id)string {
@@ -68,7 +67,7 @@
 			jsString = [[NSString alloc] initWithFormat:@"%@(%@);", callback, function];
 		else if (string)
 			jsString = [[NSString alloc] initWithFormat:@"%@(\"%@\");", callback, string];
-		NSLog(jsString);
+		NSLog(@"%@",jsString);
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
 	}
@@ -77,12 +76,11 @@
 #pragma mark -
 #pragma mark FileSystemManager
 
-- (NSString *)resolveLocation:(NSString *)location{
+- (NSString *)resolveLocation:(NSString *)location addMode:(NSString *)mode{
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
 	NSString *documentsDirectory = [paths objectAtIndex:0];	
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	NSError *error = nil;
-	//NSLog(@"resolveLocation: %@",location);
 	NSDictionary *attributes = [fileManager attributesOfItemAtPath:location error:&error];
 	if (error) {
 		NSLog(@"%@",[error localizedDescription]);
@@ -96,7 +94,7 @@
 		NSString *parent = nil;
 		if (![location isEqualToString:documentsDirectory]){ //assuming documentsDirectory is root
 			//recursively creating parent objects
-			parent = [self resolveLocation:parentString];
+			parent = [self resolveLocation:parentString addMode:mode];
 		}		
 		
 		BOOL isFile = FALSE, isDirectory = FALSE;
@@ -108,8 +106,9 @@
 		}
 		
 		NSString *fileInfo = [[NSString alloc]
-							  initWithFormat:@"{ parent: %@, readOnly: %@, isFile: %@, isDirectory: %@, created: '%@' , modified: '%@', path: '%@' , name: '%@' , absolutePath: '%@' , fileSize: %i }",
+							  initWithFormat:@"{parent: %@, mode: '%@', readOnly: %@, isFile: %@, isDirectory: %@, created: '%@' , modified: '%@', path: '%@' , name: '%@' , absolutePath: '%@' , fileSize: %i}",
 							  parent, //parent is another JSON object
+							  mode,
 							  [self stringWithBool:[attributes fileIsAppendOnly]],
 							  [self stringWithBool:isFile],
 							  [self stringWithBool:isDirectory],
@@ -155,20 +154,8 @@
 	else
 		return nil;
 }
-/*
-- (NSString *)resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 
-	NSUInteger argc = [arguments count];
-	NSString* location = nil;
-	if (argc > 0) location = [arguments objectAtIndex:0];
-	NSLog(@"[INFO] BONDIFilesystem.resolve:%@",location);	
-
-	return [self resolveLocation:location];
-	
-}
-*/
 //TODO: resolve mode parameter handling
-//TODO: blocking in callback
 - (NSString *)resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSUInteger argc = [arguments count];
 	NSString* successCallback = nil, *errorCallback = nil, *location = nil, *mode = nil;
@@ -181,29 +168,40 @@
 	
 	NSLog(@"[INFO] BONDIFilesystem.resolve: %@ %@",location,mode);	
 	
-	NSString *resolvedLocation = [self resolveLocation:location];
+	NSString *resolvedLocation = [self resolveLocation:location addMode:mode];
 	if ([resolvedLocation isEqualToString:[NSString stringWithFormat:@"%i", INVALID_ARGUMENT_ERROR]]){
 		NSString *parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", INVALID_ARGUMENT_ERROR];
 		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
-		timer = [NSTimer scheduledTimerWithTimeInterval:.1 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
-		return nil;
+		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 	} else {
 		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
-		timer = [NSTimer scheduledTimerWithTimeInterval:.1 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
-		return nil;
+		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 	}
-	NSLog(@"resolve done");
+	return nil;
 }
 #pragma mark -
 #pragma mark File
+
+- (NSString *)file_resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
+	
+	NSUInteger argc = [arguments count];
+	NSString* location = nil, *mode = nil;
+	if (argc > 0) location = [arguments objectAtIndex:0];
+	if (argc > 1) mode = [arguments objectAtIndex:1];
+	NSLog(@"[INFO] BONDIFilesystem.File.resolve:%@ %@",location, mode);	
+	
+	return [self resolveLocation:location addMode:mode];
+	
+}
 
 - (NSString *)listFiles:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	
 	NSUInteger argc = [arguments count];
-	NSString* path = nil;
+	NSString* path = nil, *mode = nil;
 	if (argc > 0) path = [arguments objectAtIndex:0];
-	NSLog(@"[INFO] BONDIFilesystem.listFiles:%@",path);
+	if (argc > 1) mode = [arguments objectAtIndex:1];
+	NSLog(@"[INFO] BONDIFilesystem.listFiles:%@ %@",path, mode);
 	
 	NSError *error = nil;
 	NSArray *directoryContent = [fileManager contentsOfDirectoryAtPath:path error:&error];
@@ -217,7 +215,7 @@
 	NSString *jsonString = @"[";
 	
 	for (NSString *file in directoryContent){
-		NSString * fileInfoJSON = [self resolveLocation:[path stringByAppendingPathComponent:file]];
+		NSString * fileInfoJSON = [self resolveLocation:[path stringByAppendingPathComponent:file] addMode:mode];
 		jsonString = [jsonString stringByAppendingString:[NSString stringWithFormat:@"%@, ",fileInfoJSON]];
 	}
 
@@ -367,8 +365,7 @@
 		fileHandle= [NSFileHandle fileHandleForUpdatingAtPath:path];
 		if (fileHandle)
 			[updateFileHandles setObject:fileHandle forKey:path];
-	}
-	
+	}	
 	if (!fileHandle) {
 		return [NSString stringWithFormat:@"%i", PERMISSION_DENIED_ERROR];
 	} else {
@@ -391,17 +388,20 @@
 	if (!success)
 		return [NSString stringWithFormat:@"%i", IO_ERROR];
 	else 
-		return [self resolveLocation:path]; //returns json file object
+		return [self resolveLocation:path addMode:@"rw"]; //returns json file object
 	
 }
 
-//TODO: deleteDirectory 1.1 with callbacks
 - (NSString *)deleteDirectory:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	NSUInteger argc = [arguments count];
 	NSError *error = nil;
-	NSString *path;
+	NSString* successCallback = nil, *errorCallback = nil, *path = nil;
+	NSTimer *timer;
 	BOOL recursive, success;
+	
+	successCallback = @"bondi.filesystem.fileSystemSuccess";
+	errorCallback =  @"bondi.filesystem.fileSystemError";
 	if (argc > 0) path = [arguments objectAtIndex:0];
 	if (argc > 1) recursive = [self boolWithString:[arguments objectAtIndex:1]];
 	NSLog(@"[INFO] BONDIFilesystem.deleteDirectory:%@ %d",path, recursive);
@@ -409,20 +409,34 @@
 	//only empty dirs can be deleted non-recursively
 	NSArray *dir = [fileManager contentsOfDirectoryAtPath:path error:&error];
 	if (dir==nil || ([dir lastObject]!=nil && !recursive)) { //not existing dir or not empty and not recursive
-		return [NSString stringWithFormat:@"%i", IO_ERROR];
+		NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;
 	}else {
 		success = [fileManager removeItemAtPath:path error:&error];
 		if (!success){
 			NSLog(@"%@",[error description]);
-			return [NSString stringWithFormat:@"%i", IO_ERROR];
+			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+			return nil;
 		}
 	}
 	
 	if (error){
 		NSLog(@"%@",[error description]);
-		return [NSString stringWithFormat:@"%i", PERMISSION_DENIED_ERROR];
+		NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", PERMISSION_DENIED_ERROR];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;
 	}
 	
+	if (success){
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", path, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;
+	}
 	return nil;
 }
 
@@ -466,7 +480,7 @@
 	if (!success)
 		return [NSString stringWithFormat:@"%i", IO_ERROR];
 	else 
-		return [self resolveLocation:path]; //returns json file object
+		return [self resolveLocation:path addMode:@"rw"]; //returns json file object
 	
 }
 
@@ -526,7 +540,7 @@
 
 - (NSString *)read:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSUInteger argc = [arguments count];
-	NSFileHandle *readFile;
+	NSFileHandle *fileHandle;
 	NSData *fileData;
 	
 	NSInteger byteCount;
@@ -537,38 +551,39 @@
 	if (argc > 3) encoding = [arguments objectAtIndex:3];
 	NSLog(@"[INFO] BONDIFilesystem.read:%i %@ %@ %@",byteCount,path,mode,encoding);
 	
-	if ([mode isEqualToString:@"r"]){
-		readFile = [readFileHandles objectForKey:path];
-		if (!readFile)
-			return [NSString stringWithFormat:@"%i", IO_ERROR];
-		@try {
-			if (byteCount != 0)
-				fileData = [readFile readDataOfLength:byteCount];
-			else {
-				fileData = [readFile readDataToEndOfFile];
-			}
-		} 
-		@catch (id exception) { //NSFileHandleOperationException
-			NSLog(@"%@", exception);
-			return [NSString stringWithFormat:@"%i", IO_ERROR]; //rethrow the exception
-		}	
-
-		NSString *dataString;
-		if ([encoding isEqualToString:@"UTF-8"])
-			dataString = [[NSString alloc] initWithData:fileData encoding:NSUTF8StringEncoding];
-		else
-			dataString = [[NSString alloc] initWithData:fileData encoding:NSISOLatin1StringEncoding];
-		
-		dataString = [NSString stringWithFormat:@"'%@'",dataString];
-		return [self addFileStreamAttributes:readFile withString:dataString withPath:path];
-	}
+	if ([mode isEqualToString:@"r"])
+		fileHandle = [readFileHandles objectForKey:path];
 	else
+		fileHandle = [updateFileHandles objectForKey:path];
+
+	if (!fileHandle)
 		return [NSString stringWithFormat:@"%i", IO_ERROR];
+	@try {
+		if (byteCount != 0)
+			fileData = [fileHandle readDataOfLength:byteCount];
+		else {
+			fileData = [fileHandle readDataToEndOfFile];
+		}
+	} 
+	@catch (id exception) { //NSFileHandleOperationException
+		NSLog(@"%@", exception);
+		return [NSString stringWithFormat:@"%i", IO_ERROR]; //rethrow the exception
+	}	
+
+	NSString *dataString;
+	if ([encoding isEqualToString:@"UTF-8"])
+		dataString = [[NSString alloc] initWithData:fileData encoding:NSUTF8StringEncoding];
+	else
+		dataString = [[NSString alloc] initWithData:fileData encoding:NSISOLatin1StringEncoding];
+	
+	dataString = [NSString stringWithFormat:@"'%@'",dataString];
+	return [self addFileStreamAttributes:fileHandle withString:dataString withPath:path];
+
 }
 
 - (NSString *)readBytes:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSUInteger argc = [arguments count];
-	NSFileHandle *readFile;
+	NSFileHandle *fileHandle;
 	NSData *fileData;
 	NSString *dataString; NSRange range;
 	char *buffer;
@@ -581,52 +596,52 @@
 	if (argc > 3) encoding = [arguments objectAtIndex:3];
 	NSLog(@"[INFO] BONDIFilesystem.readBytes:%i %@ %@ %@",byteCount,path,mode,encoding);
 
-	if ([mode isEqualToString:@"r"]){
-		readFile = [readFileHandles objectForKey:path];
-		if (!readFile)
-			return [NSString stringWithFormat:@"%i", IO_ERROR];
-		@try {
-			if (byteCount != 0)
-				fileData = [readFile readDataOfLength:byteCount];
-			else {
-				fileData = [readFile readDataToEndOfFile];
-			}
-		} 
-		@catch (id exception) {
-			NSLog(@"%@", exception);
-			return [NSString stringWithFormat:@"%i", IO_ERROR];
-		}
-		
-		buffer = malloc(sizeof(char)*[readFile offsetInFile]);
-		if ([encoding isEqualToString:@"UTF-8"]){
-			dataString = [[NSString alloc] initWithData:fileData encoding:NSUTF8StringEncoding];
-			range = NSMakeRange(0,[dataString length]); 
-			[dataString getBytes:buffer maxLength:[readFile offsetInFile] usedLength:NULL encoding:NSUTF8StringEncoding options:1 range:range remainingRange:NULL];
-		}
-		else{
-			dataString = [[NSString alloc] initWithData:fileData encoding:NSISOLatin1StringEncoding];
-			range = NSMakeRange(0,[dataString length]); 
-			[dataString getBytes:buffer maxLength:[readFile offsetInFile] usedLength:NULL encoding:NSISOLatin1StringEncoding options:1 range:range remainingRange:NULL];
-		}
-	
-		//create JSON manually (byte array)
-		NSString *jsonString = @"[";
-		for (int i=0;i<[readFile offsetInFile];i++) {
-			jsonString = [jsonString stringByAppendingString:[NSString stringWithFormat:@"%i, ",buffer[i]]]; 		
-		}
-		if([jsonString length]>2) //otherwise empty array
-			jsonString = [jsonString substringToIndex:[jsonString length]-2]; //remove last comma
-		jsonString = [jsonString stringByAppendingString:@" ]"];	
-
-		return [self addFileStreamAttributes:readFile withString:jsonString withPath:path];
-	}
+	if ([mode isEqualToString:@"r"])
+		fileHandle = [readFileHandles objectForKey:path];
 	else
+		fileHandle = [updateFileHandles objectForKey:path];
+	
+	if (!fileHandle)
 		return [NSString stringWithFormat:@"%i", IO_ERROR];
+	@try {
+		if (byteCount != 0)
+			fileData = [fileHandle readDataOfLength:byteCount];
+		else {
+			fileData = [fileHandle readDataToEndOfFile];
+		}
+	} 
+	@catch (id exception) {
+		NSLog(@"%@", exception);
+		return [NSString stringWithFormat:@"%i", IO_ERROR];
+	}
+	
+	buffer = malloc(sizeof(char)*[fileHandle offsetInFile]);
+	if ([encoding isEqualToString:@"UTF-8"]){
+		dataString = [[NSString alloc] initWithData:fileData encoding:NSUTF8StringEncoding];
+		range = NSMakeRange(0,[dataString length]); 
+		[dataString getBytes:buffer maxLength:[fileHandle offsetInFile] usedLength:NULL encoding:NSUTF8StringEncoding options:1 range:range remainingRange:NULL];
+	}
+	else{
+		dataString = [[NSString alloc] initWithData:fileData encoding:NSISOLatin1StringEncoding];
+		range = NSMakeRange(0,[dataString length]); 
+		[dataString getBytes:buffer maxLength:[fileHandle offsetInFile] usedLength:NULL encoding:NSISOLatin1StringEncoding options:1 range:range remainingRange:NULL];
+	}
+
+	//create JSON manually (byte array)
+	NSString *jsonString = @"[";
+	for (int i=0;i<[fileHandle offsetInFile];i++) {
+		jsonString = [jsonString stringByAppendingString:[NSString stringWithFormat:@"%i, ",buffer[i]]]; 		
+	}
+	if([jsonString length]>2) //otherwise empty array
+		jsonString = [jsonString substringToIndex:[jsonString length]-2]; //remove last comma
+	jsonString = [jsonString stringByAppendingString:@" ]"];	
+
+	return [self addFileStreamAttributes:fileHandle withString:jsonString withPath:path];
 }
 
 - (NSString *)readBase64:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSUInteger argc = [arguments count];
-	NSFileHandle *readFile;
+	NSFileHandle *fileHandle;
 	NSData *fileData;
 	NSString *dataString;
 	
@@ -638,27 +653,27 @@
 	if (argc > 3) encoding = [arguments objectAtIndex:3];
 	NSLog(@"[INFO] BONDIFilesystem.readBase64:%i %@ %@ %@",byteCount,path,mode,encoding);
 	
-	if ([mode isEqualToString:@"r"]){
-		readFile = [readFileHandles objectForKey:path];
-		if (!readFile)
-			return [NSString stringWithFormat:@"%i", IO_ERROR];
-		@try {
-			if (byteCount != 0)
-				fileData = [readFile readDataOfLength:byteCount];
-			else {
-				fileData = [readFile readDataToEndOfFile];
-			}
-		} 
-		@catch (id exception) { //NSFileHandleOperationException
-			NSLog(@"%@", exception);
-			return [NSString stringWithFormat:@"%i", IO_ERROR]; //rethrow the exception
-		}
-
-		dataString = [NSString stringWithFormat:@"'%@'",[fileData base64EncodedString]];
-		return [self addFileStreamAttributes:readFile withString:dataString withPath:path];
-	}
+	if ([mode isEqualToString:@"r"])
+		fileHandle = [readFileHandles objectForKey:path];
 	else
+		fileHandle = [updateFileHandles objectForKey:path];
+
+	if (!fileHandle)
 		return [NSString stringWithFormat:@"%i", IO_ERROR];
+	@try {
+		if (byteCount != 0)
+			fileData = [fileHandle readDataOfLength:byteCount];
+		else {
+			fileData = [fileHandle readDataToEndOfFile];
+		}
+	} 
+	@catch (id exception) { //NSFileHandleOperationException
+		NSLog(@"%@", exception);
+		return [NSString stringWithFormat:@"%i", IO_ERROR]; //rethrow the exception
+	}
+
+	dataString = [NSString stringWithFormat:@"'%@'",[fileData base64EncodedString]];
+	return [self addFileStreamAttributes:fileHandle withString:dataString withPath:path];
 }
 
 - (NSString *)write:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
@@ -725,9 +740,9 @@
 			fileHandle= [writeFileHandles objectForKey:path];
 		else
 			fileHandle= [updateFileHandles objectForKey:path];
-			
+		
 		if (!fileHandle)
-				return [NSString stringWithFormat:@"%i", IO_ERROR];		
+			return [NSString stringWithFormat:@"%i", IO_ERROR];		
 		
 		if ([encoding isEqualToString:@"UTF-8"]){
 			stringData = [[NSString alloc] initWithBytes:bytes length:[byteArray count] encoding:NSUTF8StringEncoding];
@@ -754,7 +769,7 @@
 	else
 		return [NSString stringWithFormat:@"%i", IO_ERROR];
 	
-
+	
 	return nil;
 }
 

@@ -156,18 +156,16 @@ function CameraManager() {
 }
 
 CameraManager.prototype.cameraSuccess = function(path){
-	this.successCallback(path);
+	setTimeout(function() {bondi.camera.successCallback(path);}, 1);
 }
 
 CameraManager.prototype.cameraError = function(error){
-	this.errorCallback(error);
+	setTimeout(function() {bondi.camera.errorCallback(error);}, 1);
 }
 
 CameraManager.prototype.getCameras = function(successCallback, errorCallback) {
 	var cams = this._cams;
-	setTimeout(function() {
-		successCallback(cams);
-	}, 1);
+	setTimeout(function() {successCallback(cams);}, 1);
 	return new PendingOperation();
 }
 
@@ -186,63 +184,43 @@ function FileSystemManager(){
     this.maxPathLength = 9999; //should be unlimited (HFS+ or FAT32 depending on OS)	
 	this.rootLocations = ["wgt-private", "documents", "images"];
 }
+FileSystemManager.supportedModes = {"r":'', "rw":''};
 
 FileSystemManager.prototype.fileSystemSuccess = function(file){
-	this.successCallback(file);
+	setTimeout(function() {bondi.filesystem.successCallback(file);}, 1);
 }
 
 FileSystemManager.prototype.fileSystemError = function(error){
-	this.errorCallback(error);
+	setTimeout(function() {bondi.filesystem.errorCallback(error);}, 1);
 }
 
-FileSystemManager.prototype.getDefaultLocation = function(specifier) {
+FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpace) {
     if (specifier in arrayToObjectLiteral(this.rootLocations)) {
 		var defaultLocation = HTTP.get('http://localhost:8080/BONDIFilesystem/getDefaultLocation',specifier);
 		return defaultLocation;
     }
     else{		 
         throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);    
-		return null;
 	}
 }
 FileSystemManager.prototype.getRootLocations = function() {
 	return this.rootLocations;
 }
-/*
-//BONDI 1.0
-FileSystemManager.prototype.resolve = function(location) {
-	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',location);
-	if (returnString == DeviceAPIError.INVALID_ARGUMENT_ERROR){
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
-		return null;
-	}
-	else if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
-		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-		return null;
-	}
-	else{
-		var tempFile = eval("(" + returnString + ")"); //JSON string
-		return JSONtoBondiFile(tempFile);
-	}	
-}
-*/
 
-FileSystemManager.prototype.fileSystemResolveSuccess = function(file){
-	if (file == DeviceAPIError.INVALID_ARGUMENT_ERROR){
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
-		return null;
-	} else {
-		var tempFile = eval("(" + file + ")");
-		var bondiFile = JSONtoBondiFile(tempFile);
-		this.successCallback(bondiFile);
-	}
+FileSystemManager.prototype.fileSystemResolveSuccess = function(file){	
+	var tempFile = eval("(" + file + ")");
+	var bondiFile = JSONtoBondiFile(tempFile);
+	setTimeout(function(){bondi.filesystem.successCallback(bondiFile);},1);
 }
 
 //BONDI 1.1
 FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
-	var supportedModes = ["r", "a", "w"];
-	if ( !(mode in arrayToObjectLiteral(supportedModes)))
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	if (mode == undefined)
+		mode = "rw";
+	else if ( !(mode in FileSystemManager.supportedModes)){
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
+		return new PendingOperation();
+	}
 	bondi.filesystem.successCallback = successCallback;
 	bondi.filesystem.errorCallback = errorCallback;
 	HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',formatPath(location)+';'+mode);
@@ -276,17 +254,18 @@ function BondiFile(){
     this.absolutePath = "";
     this.fileSize = 0;
 	
-	this.supportedModes = ["r", "a", "w"];
-	this.supportedEncodings = ["UTF-8", "ISO8859-1"];
+	//attribute transferred from FileSystemManager.resolve - not part of specification
+	this.mode = "";
 }
+BondiFile.supportedModes = {"r":'', "w":'', "a":''};
+BondiFile.supportedEncodings = {"UTF-8":'', "ISO8859-1":''};
 
 BondiFile.prototype.listFiles = function() {
     if (this.isFile)
 		throw new GenericError(DeviceAPIError.IO_ERROR);
-	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/listFiles',this.absolutePath);
+	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/listFiles',this.absolutePath+';'+this.mode);
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-		return null;
 	}
 	var fileArray = eval(returnString);
 	for (var i=0;i<fileArray.length;i++){
@@ -298,14 +277,15 @@ BondiFile.prototype.listFiles = function() {
 BondiFile.prototype.open = function(mode, encoding) {
     if (this.isDirectory)
 		throw new GenericError(DeviceAPIError.IO_ERROR);
-	if ( !(mode in arrayToObjectLiteral(this.supportedModes)) || !(encoding in arrayToObjectLiteral(this.supportedEncodings)) )
+	if ( !(mode in BondiFile.supportedModes) || !(encoding in BondiFile.supportedEncodings) )
 		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	if  ( !(mode == "r") && this.mode == "r")
+		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/open',this.absolutePath+';'+mode+';'+encoding);
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-		return null;
 	} else {	
-	//update FileStream attributes
+		//update FileStream attributes
 		var fileStream = new FileStream();
 		var fileInfo = eval("(" + returnString + ")"); //JSON string
 		fileStream._position = fileInfo.position;
@@ -320,16 +300,20 @@ BondiFile.prototype.open = function(mode, encoding) {
     return fileStream;
 }
 BondiFile.prototype.copyTo = function(successCallback, errorCallback, filePath, overwrite) {
-	if(this.isDirectory)
-		throw new GenericError(DeviceAPIError.IO_ERROR);
+	if(this.isDirectory){
+		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
+		return new PendingOperation();
+	}
 	bondi.filesystem.successCallback = successCallback;
 	bondi.filesystem.errorCallback = errorCallback;
 	HTTP.get('http://localhost:8080/BONDIFilesystem/copyTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite);
 	return new PendingOperation();
 }
 BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, overwrite) {
-	if(this.isDirectory)
-		throw new GenericError(DeviceAPIError.IO_ERROR);
+	if(this.isDirectory){
+		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
+		return new PendingOperation();
+	}
 	bondi.filesystem.successCallback = successCallback;
 	bondi.filesystem.errorCallback = errorCallback;
 	HTTP.get('http://localhost:8080/BONDIFilesystem/moveTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite);
@@ -344,6 +328,8 @@ function formatPath(path){
 }
 
 BondiFile.prototype.createDirectory = function(dirPath) {
+	if  (this.mode == "r")
+		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/createDirectory',this.absolutePath+formatPath(dirPath));
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
@@ -360,6 +346,8 @@ BondiFile.prototype.createDirectory = function(dirPath) {
 
 
 BondiFile.prototype.createFile = function(filePath) {
+	if  (this.mode == "r")
+		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/createFile',this.absolutePath+formatPath(filePath));
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
@@ -374,36 +362,33 @@ BondiFile.prototype.createFile = function(filePath) {
 }
 
 BondiFile.prototype.resolve = function(filePath) {
-	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',this.absolutePath+formatPath(filePath));
-	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
-		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-		return null;
-	}
-	if (returnString == DeviceAPIError.INVALID_ARGUMENT_ERROR){ //remap exception, since same method is used as in FileSystemManager.resolve
+	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/file_resolve',this.absolutePath+formatPath(filePath)+';'+this.mode);
+	if (returnString == DeviceAPIError.INVALID_ARGUMENT_ERROR){
 		throw new GenericError(DeviceAPIError.IO_ERROR);
 		return null;
 	}
 	var tempFile = eval("(" + returnString + ")"); //JSON string
 	return JSONtoBondiFile(tempFile);
 }
-
-BondiFile.prototype.deleteDirectory = function(recursive) {
-	if(this.isFile){
-		throw new GenericError(DeviceAPIError.IO_ERROR);
-		return false;
+//BONDI1.1
+BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, recursive) {
+	if  (this.mode == "r"){
+		errorCallback(GenericError(SecurityError.PERMISSION_DENIED_ERROR));
+		return new PendingOperation();
 	}
-	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/deleteDirectory',this.absolutePath+';'+recursive);
-	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
-		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-		return false;
-	}else if (returnString == DeviceAPIError.IO_ERROR){
-		throw new GenericError(DeviceAPIError.IO_ERROR);
-		return false;
-	} else
-		return true;
+	if(this.isFile){
+		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
+		return new PendingOperation();
+	}
+	bondi.filesystem.successCallback = successCallback;
+	bondi.filesystem.errorCallback = errorCallback;
+	HTTP.get('http://localhost:8080/BONDIFilesystem/deleteDirectory',this.absolutePath+';'+recursive);
+	return new PendingOperation();
 }
 
 BondiFile.prototype.deleteFile = function() {
+	if  (this.mode == "r")
+		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 	if(this.isDirectory){
 		throw new GenericError(DeviceAPIError.IO_ERROR);
 		return false;
@@ -439,7 +424,7 @@ function FileStream(){
 										  });
     this.bytesAvailable = -1; 
 	
-	//attributes transferred from BondiFile - not part of specification
+	//attributes transferred from File.open - not part of specification
 	this.absolutePath = "";
 	this.mode = "";
 	this.encoding = "";
@@ -540,7 +525,7 @@ function DeviceStatusError() {
 DeviceStatusError.READ_ONLY_PROPERTY_ERROR = 1;
 
 DeviceStatusManager.prototype.propertyChangeSuccess = function(property,newValue) {
-	this.listener(property,newValue);
+	setTimeout(function() {bondi.devicestatus.listener(property,newValue);}, 1);
 }
 
 DeviceStatusManager.prototype.listVocabularies = function() {
