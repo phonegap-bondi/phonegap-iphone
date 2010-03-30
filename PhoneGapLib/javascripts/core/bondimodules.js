@@ -143,10 +143,10 @@ BondiCamera.prototype.setFeature = function(featureID, valueID) {
 BondiCamera.prototype.requestLiveVideo = function(successCallback, errorCallback) {
 	throw new Error("Not implemented");
 }
-BondiCamera.prototype.startVideo = function(successCallback, errorCallback, options) {
+BondiCamera.prototype.beginRecording = function(successCallback, errorCallback, capturedCallback, options) {
 	throw new Error("Not implemented");
 }
-BondiCamera.prototype.stopVideo = function(successCallback, errorCallback) {
+BondiCamera.prototype.endRecording = function(successCallback, errorCallback) {
 	throw new Error("Not implemented");
 }
 
@@ -186,8 +186,10 @@ function FileSystemManager(){
 }
 FileSystemManager.supportedModes = {"r":'', "rw":''};
 
-FileSystemManager.prototype.fileSystemSuccess = function(file){
-	setTimeout(function() {bondi.filesystem.successCallback(file);}, 1);
+FileSystemManager.prototype.fileSystemSuccess = function(file){	
+	var tempFile = eval("(" + file + ")");
+	var bondiFile = JSONtoBondiFile(tempFile);
+	setTimeout(function(){bondi.filesystem.successCallback(bondiFile);},1);
 }
 
 FileSystemManager.prototype.fileSystemError = function(error){
@@ -206,13 +208,6 @@ FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpac
 FileSystemManager.prototype.getRootLocations = function() {
 	return this.rootLocations;
 }
-
-FileSystemManager.prototype.fileSystemResolveSuccess = function(file){	
-	var tempFile = eval("(" + file + ")");
-	var bondiFile = JSONtoBondiFile(tempFile);
-	setTimeout(function(){bondi.filesystem.successCallback(bondiFile);},1);
-}
-
 //BONDI 1.1
 FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
 	if (mode == undefined)

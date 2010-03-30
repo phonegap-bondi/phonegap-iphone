@@ -161,7 +161,7 @@
 	NSString* successCallback = nil, *errorCallback = nil, *location = nil, *mode = nil;
 	NSTimer *timer;
 	
-	successCallback = @"bondi.filesystem.fileSystemResolveSuccess";
+	successCallback = @"bondi.filesystem.fileSystemSuccess";
 	errorCallback =  @"bondi.filesystem.fileSystemError";
 	if (argc > 0) location = [arguments objectAtIndex:0];
 	if (argc > 1) mode = [arguments objectAtIndex:1];
@@ -264,8 +264,9 @@
 	}	
 	BOOL operationSuccess = [fileManager copyItemAtPath:srcPath toPath:filePath error:&error];
 	if (operationSuccess){
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", srcPath, nil];		
-		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		NSString *resolvedLocation = [self resolveLocation:filePath addMode:@"rw"];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}else{
 		if (error) {
@@ -322,8 +323,9 @@
 	}	
 	BOOL operationSuccess = [fileManager moveItemAtPath:srcPath toPath:filePath error:&error];
 	if (operationSuccess){
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", srcPath, nil];		
-		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		NSString *resolvedLocation = [self resolveLocation:filePath addMode:@"rw"];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}else{
 		if (error) {
@@ -396,7 +398,7 @@
 	NSFileManager *fileManager = [NSFileManager defaultManager];
 	NSUInteger argc = [arguments count];
 	NSError *error = nil;
-	NSString* successCallback = nil, *errorCallback = nil, *path = nil;
+	NSString* successCallback = nil, *errorCallback = nil, *path = nil, *resolvedLocation = nil;
 	NSTimer *timer;
 	BOOL recursive, success;
 	
@@ -414,6 +416,7 @@
 		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}else {
+		resolvedLocation = [self resolveLocation:path addMode:nil];
 		success = [fileManager removeItemAtPath:path error:&error];
 		if (!success){
 			NSLog(@"%@",[error description]);
@@ -433,8 +436,8 @@
 	}
 	
 	if (success){
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", path, nil];		
-		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}
 	return nil;
