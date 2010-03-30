@@ -176,7 +176,11 @@ PhoneGap.addConstructor(function() {
 
 // bondi geolocation
 PhoneGap.addConstructor(function() {
-    if (typeof bondi.geolocation == "undefined") bondi.geolocation = navigator.geolocation; //equals W3C Geolocation API
+						if (typeof bondi.geolocation == "undefined"){
+							bondi.geolocation = navigator.geolocation; //equals W3C Geolocation API
+							if (typeof Coordinates.altitudeAccuracy == "undefined")
+								Coordinates.prototype.altitudeAccuracy = null;
+						}
 });
 
 // bondi filesystem
