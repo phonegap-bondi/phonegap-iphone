@@ -177,7 +177,37 @@ PhoneGap.addConstructor(function() {
 // bondi geolocation
 PhoneGap.addConstructor(function() {
 						if (typeof bondi.geolocation == "undefined"){
-							bondi.geolocation = navigator.geolocation; //equals W3C Geolocation API
+							//equals W3C Geolocation API
+							bondi.geolocation = {};
+							bondi.geolocation.getCurrentPosition = function(successCallback,errorCallback, options){
+							if (typeof options == "undefined")
+								options = {};
+						
+							if (successCallback == null)
+								throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+							else if (typeof options.timeout != "undefined" && options.timeout < -1)
+								throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+							else if (typeof options.maximumAge != "undefined" && options.maximumAge < 0)
+								throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+							
+							navigator.geolocation.getCurrentPosition(successCallback,errorCallback,options);
+							}
+							bondi.geolocation.watchPosition = function(successCallback,errorCallback, options){				
+							if (typeof options == "undefined")
+								options = {};									
+							
+							if (successCallback == null)
+								throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+							else if (typeof options.timeout != "undefined" && options.timeout < -1)
+								throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+							else if (typeof options.maximumAge != "undefined" && options.maximumAge < 0)
+								throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+							
+							navigator.geolocation.watchPosition(successCallback,errorCallback,options);
+							}
+							
+							bondi.geolocation.clearWatch = navigator.geolocation.clearWatch;
+													
 							if (typeof Coordinates.altitudeAccuracy == "undefined")
 								Coordinates.prototype.altitudeAccuracy = null;
 						}
