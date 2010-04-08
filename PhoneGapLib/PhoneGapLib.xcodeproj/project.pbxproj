@@ -88,6 +88,8 @@
 		AA747D9F0F9514B9006C5449 /* PhoneGapLib_Prefix.pch in Headers */ = {isa = PBXBuildFile; fileRef = AA747D9E0F9514B9006C5449 /* PhoneGapLib_Prefix.pch */; };
 		EF245EAD11074B9E0096CEF1 /* BONDIDeviceStatus.h in Headers */ = {isa = PBXBuildFile; fileRef = EF245EAB11074B9E0096CEF1 /* BONDIDeviceStatus.h */; };
 		EF245EAE11074B9E0096CEF1 /* BONDIDeviceStatus.m in Sources */ = {isa = PBXBuildFile; fileRef = EF245EAC11074B9E0096CEF1 /* BONDIDeviceStatus.m */; };
+		EFDB8A83116B6B9100F816F8 /* BONDIGeolocation.h in Headers */ = {isa = PBXBuildFile; fileRef = EFDB8A81116B6B9100F816F8 /* BONDIGeolocation.h */; };
+		EFDB8A84116B6B9100F816F8 /* BONDIGeolocation.m in Sources */ = {isa = PBXBuildFile; fileRef = EFDB8A82116B6B9100F816F8 /* BONDIGeolocation.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -173,6 +175,8 @@
 		D2AAC07E0554694100DB518D /* libPhoneGapLib.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPhoneGapLib.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		EF245EAB11074B9E0096CEF1 /* BONDIDeviceStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BONDIDeviceStatus.h; path = Classes/BONDI/BONDIDeviceStatus.h; sourceTree = "<group>"; };
 		EF245EAC11074B9E0096CEF1 /* BONDIDeviceStatus.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BONDIDeviceStatus.m; path = Classes/BONDI/BONDIDeviceStatus.m; sourceTree = "<group>"; };
+		EFDB8A81116B6B9100F816F8 /* BONDIGeolocation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BONDIGeolocation.h; path = Classes/BONDI/BONDIGeolocation.h; sourceTree = "<group>"; };
+		EFDB8A82116B6B9100F816F8 /* BONDIGeolocation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = BONDIGeolocation.m; path = Classes/BONDI/BONDIGeolocation.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -338,6 +342,8 @@
 				A7B5D98010D68EE9001AE108 /* BONDIErrorCodes.m */,
 				EF245EAB11074B9E0096CEF1 /* BONDIDeviceStatus.h */,
 				EF245EAC11074B9E0096CEF1 /* BONDIDeviceStatus.m */,
+				EFDB8A81116B6B9100F816F8 /* BONDIGeolocation.h */,
+				EFDB8A82116B6B9100F816F8 /* BONDIGeolocation.m */,
 			);
 			name = BONDI;
 			sourceTree = "<group>";
@@ -406,6 +412,7 @@
 				A78A656410C3E3D50083989F /* HTTPResponseHandler.h in Headers */,
 				A7B5D98110D68EE9001AE108 /* BONDIErrorCodes.h in Headers */,
 				EF245EAD11074B9E0096CEF1 /* BONDIDeviceStatus.h in Headers */,
+				EFDB8A83116B6B9100F816F8 /* BONDIGeolocation.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -510,6 +517,7 @@
 				A78A656510C3E3D50083989F /* HTTPResponseHandler.m in Sources */,
 				A7B5D98210D68EE9001AE108 /* BONDIErrorCodes.m in Sources */,
 				EF245EAE11074B9E0096CEF1 /* BONDIDeviceStatus.m in Sources */,
+				EFDB8A84116B6B9100F816F8 /* BONDIGeolocation.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
