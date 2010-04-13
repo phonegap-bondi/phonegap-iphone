@@ -177,14 +177,20 @@ PhoneGap.addConstructor(function() {
 // bondi geolocation
 function BONDIGeolocation() {
     this.lastPosition = null;
-    this.lastError = null;
 };
 
 BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorCallback, options) 
 {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	
 	if (typeof options == "undefined")
 		options = {};
 	else if (typeof options != "object")
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	else if (typeof options.timeout != "undefined" && options.timeout < -1)
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	else if (typeof options.maximumAge != "undefined" && options.maximumAge < 0)
 		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
 	
 	if (typeof errorCallback == "undefined" || errorCallback == null)
@@ -193,30 +199,16 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 		options = errorCallback; //in case errorCallback is left out : function(successCallback,options)
 	else if (typeof errorCallback != "function")
 		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
-		
-	if (successCallback == null)
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
-	else if (typeof options.timeout != "undefined" && options.timeout < -1)
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
-	else if (typeof options.maximumAge != "undefined" && options.maximumAge < 0)
-		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	
+	bondi.geolocation.successCallback = successCallback;
+	bondi.geolocation.errorCallback = errorCallback;
 	
 	var referenceTime = 0;
-	
-	if(this.lastError != null)
-	{
-		errorCallback.call(null,this.lastError);
-		this.stop();
-		return;
-	}
 	
 	this.start(options);
 	
     var timeout = 20000; // defaults
     var interval = 500;
-	
-    if (typeof(options) == 'object' && options.interval)
-        interval = options.interval;
 	
     var dis = this;
     var delay = 0;
@@ -233,11 +225,6 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 							{
 							clearInterval(timer);
 							errorCallback("Error Timeout");
-							}
-							else if(dis.lastError != null)
-							{
-							clearInterval(timer);
-							errorCallback(dis.lastError);
 							}
 							}, interval);
 };
@@ -265,13 +252,13 @@ BONDIGeolocation.prototype.clearWatch = function(watchId) {
 
 BONDIGeolocation.prototype.setLocation = function(position) 
 {
-	this.lastError = null;
-    this.lastPosition = position;
-	
+    this.lastPosition = position;	
 };
 
 BONDIGeolocation.prototype.setError = function(message) {
-    this.lastError = message;
+    var errorCallback = bondi.geolocation.errorCallback;
+	if (errorCallback)
+		errorCallback(error);
 };
 
 BONDIGeolocation.prototype.start = function(args) {
