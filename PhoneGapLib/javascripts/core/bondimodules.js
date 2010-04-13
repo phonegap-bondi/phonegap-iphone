@@ -53,7 +53,9 @@ if (typeof(bondi) != 'object')
     bondi = {};
 
 bondi.requestFeature = function ( successCallback,  errorCallback,  name){
-	if (name.startsWith('http://bondi.omtp.org/api/1.1/filesystem'))
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
+	else if (name.startsWith('http://bondi.omtp.org/api/1.1/filesystem'))
 		successCallback(new FileSystemManager());
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/devicestatus'))
 		successCallback(new DeviceStatusManager());
@@ -62,7 +64,7 @@ bondi.requestFeature = function ( successCallback,  errorCallback,  name){
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/geolocation'))
 		successCallback(bondi.geolocation);
 	else
-		errorCallback(new GenericError(SecurityError.PERMISSION_DENIED_ERROR));
+		errorCallback(new GenericError(DeviceAPIError.NOT_FOUND_ERROR));
 	return new PendingOperation();
 };
 
@@ -90,10 +92,11 @@ function SecurityError() {
 }
 SecurityError.PERMISSION_DENIED_ERROR = 20000;
 
-PendingOperation = function() {
-}
-PendingOperation.prototype.cancel = function() {
+function PendingOperation() {}
+PendingOperation.prototype.cancel = function () {
 	return false;
+}
+PendingOperation.prototype.wait = function () {
 }
 
 // bondi camera
@@ -126,6 +129,8 @@ function BondiCamera() {
 
 
 BondiCamera.prototype.takePicture = function(successCallback, errorCallback, options) {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
 	bondi.camera.successCallback = successCallback;
 	bondi.camera.errorCallback = errorCallback;
 	if (options == undefined)
@@ -164,6 +169,8 @@ CameraManager.prototype.cameraError = function(error){
 }
 
 CameraManager.prototype.getCameras = function(successCallback, errorCallback) {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
 	var cams = this._cams;
 	setTimeout(function() {successCallback(cams);}, 1);
 	return new PendingOperation();
@@ -230,9 +237,6 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 };
 
 BONDIGeolocation.prototype.watchPosition = function(successCallback, errorCallback, options) {
-	// Invoke the appropriate callback with a new Position object every time the implementation 
-	// determines that the position of the hosting device has changed. 
-	
 	this.getCurrentPosition(successCallback, errorCallback, options);
 	var frequency = 10000;
 	if (typeof(options) == 'object' && options.frequency)
@@ -327,6 +331,8 @@ FileSystemManager.prototype.getRootLocations = function() {
 }
 //BONDI 1.1
 FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
 	if (mode == undefined)
 		mode = "rw";
 	else if ( !(mode in FileSystemManager.supportedModes)){
@@ -412,6 +418,8 @@ BondiFile.prototype.open = function(mode, encoding) {
     return fileStream;
 }
 BondiFile.prototype.copyTo = function(successCallback, errorCallback, filePath, overwrite) {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
 	if(this.isDirectory){
 		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
 		return new PendingOperation();
@@ -422,6 +430,8 @@ BondiFile.prototype.copyTo = function(successCallback, errorCallback, filePath, 
 	return new PendingOperation();
 }
 BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, overwrite) {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
 	if(this.isDirectory){
 		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
 		return new PendingOperation();
@@ -484,6 +494,8 @@ BondiFile.prototype.resolve = function(filePath) {
 }
 //BONDI1.1
 BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, recursive) {
+	if (typeof successCallback == "undefined" || successCallback == null)
+		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
 	if  (this.mode == "r"){
 		errorCallback(GenericError(SecurityError.PERMISSION_DENIED_ERROR));
 		return new PendingOperation();
@@ -654,7 +666,13 @@ DeviceStatusManager.prototype.listAspects = function() {
 }
 
 DeviceStatusManager.prototype.getComponents = function(aspect) {
-	throw new Error("Not implemented");
+	if (typeof aspect == "object" && aspect.aspect == "Battery")
+		return ["__primary", "__secondary"];
+	
+	if (typeof aspect == "object" && aspect.aspect == "OperatingSystem")
+		return ["__default", "__active"];
+	
+	throw new GenericError(DeviceAPIError.NOT_FOUND_ERROR);
 }
 
 DeviceStatusManager.prototype.listProperties = function(aspect) {
@@ -701,9 +719,11 @@ DeviceStatusManager.prototype.getPropertyValue = function(pref) {
 }
 
 DeviceStatusManager.prototype.watchPropertyChange = function(pref, listener, options) {
+	if (typeof listener == "undefined" || listener == null)
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
 	var isBatteryProperty = pref.property in arrayToObjectLiteral(this.listProperties({aspect:"Battery"}));
 	if ( !(typeof pref == "object" && isBatteryProperty) ) //only Battery properties can be  watched currently
-		throw new GenericError(DeviceAPIError.NOT_FOUND_ERROR);
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
 	bondi.devicestatus.listener = listener;
 	var id = HTTP.get('http://localhost:8080/BONDIDeviceStatus/watchPropertyChange',JSON.stringify(pref)+';'+JSON.stringify(options));
     return id;
@@ -713,6 +733,19 @@ DeviceStatusManager.prototype.clearPropertyChange = function(watchHandler) {
 	if (stringResult == DeviceAPIError.INVALID_ARGUMENT_ERROR)
 		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
 }
+
+function AspectName() {
+    this.aspect=null;
+	this.vocabulary=null;
+}
+
+function PropertyRef(){
+	this.vocabulary=null;
+	this.component=null;
+	this.aspect=null;
+	this.property=null;
+}
+
 
 PhoneGap.addConstructor(function() {
 	if (typeof bondi.devicestatus == "undefined") bondi.devicestatus = new DeviceStatusManager();
