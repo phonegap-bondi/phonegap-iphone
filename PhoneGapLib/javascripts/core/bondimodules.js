@@ -19,6 +19,65 @@ var HTTP = {
 	}
 };
 
+//used to handle multiple callbacks
+function Hash()
+{
+	this.length = 0;
+	this.items = new Array();
+	for (var i = 0; i < arguments.length; i += 2) {
+		if (typeof(arguments[i + 1]) != 'undefined') {
+			this.items[arguments[i]] = arguments[i + 1];
+			this.length++;
+		}
+	}
+	
+	this.removeItem = function(in_key)
+	{
+		var tmp_previous;
+		if (typeof(this.items[in_key]) != 'undefined') {
+			this.length--;
+			var tmp_previous = this.items[in_key];
+			delete this.items[in_key];
+		}
+		
+		return tmp_previous;
+	}
+	
+	this.getItem = function(in_key) {
+		return this.items[in_key];
+	}
+	
+	this.setItem = function(in_value)
+	{
+		var in_key = 0;
+		while(this.hasItem(in_key))
+			in_key++;
+		if (typeof(in_value) != 'undefined') {
+			if (typeof(this.items[in_key]) == 'undefined') {
+				this.length++;
+			}
+			this.items[in_key] = in_value;
+		}
+		
+		return in_key;
+	}
+	
+	this.hasItem = function(in_key)
+	{
+		return typeof(this.items[in_key]) != 'undefined';
+	}
+	
+	this.clear = function()
+	{
+		for (var i in this.items) {
+			delete this.items[i];
+		}
+		
+		this.length = 0;
+	}
+}
+
+
 function arrayToObjectLiteral(a)
 {
 	var o = {};
@@ -53,18 +112,18 @@ if (typeof(bondi) != 'object')
     bondi = {};
 
 bondi.requestFeature = function ( successCallback,  errorCallback,  name){
-	if (typeof successCallback == "undefined" || successCallback == null)
+	if (typeof successCallback == "undefined" || successCallback == null)		
 		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
-	else if (name.startsWith('http://bondi.omtp.org/api/1.1/filesystem'))
+	else if (name.startsWith('http://bondi.omtp.org/api/1.1/filesystem'))		
 		successCallback(new FileSystemManager());
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/devicestatus'))
-		successCallback(new DeviceStatusManager());
+		successCallback(new DeviceStatusManager());		
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/camera'))
-		successCallback(new CameraManager());
+		successCallback(new CameraManager());	
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/geolocation'))
 		successCallback(bondi.geolocation);
 	else
-		errorCallback(new GenericError(DeviceAPIError.NOT_FOUND_ERROR));
+		errorCallback(new GenericError(DeviceAPIError.NOT_FOUND_ERROR));	
 	return new PendingOperation();
 };
 
@@ -130,12 +189,14 @@ function BondiCamera() {
 
 BondiCamera.prototype.takePicture = function(successCallback, errorCallback, options) {
 	if (typeof successCallback == "undefined" || successCallback == null)
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
-	bondi.camera.successCallback = successCallback;
-	bondi.camera.errorCallback = errorCallback;
-	if (options == undefined)
-		options = {};
-	HTTP.get('http://localhost:8080/BONDICamera/takePicture',JSON.stringify(options));
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
+	else {
+		bondi.camera.successCallback = successCallback;
+		bondi.camera.errorCallback = errorCallback;
+		if (options == undefined)
+			options = {};
+		HTTP.get('http://localhost:8080/BONDICamera/takePicture',JSON.stringify(options));
+	}
     return new PendingOperation();
 }
 
@@ -170,7 +231,7 @@ CameraManager.prototype.cameraError = function(error){
 
 CameraManager.prototype.getCameras = function(successCallback, errorCallback) {
 	if (typeof successCallback == "undefined" || successCallback == null)
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
 	var cams = this._cams;
 	setTimeout(function() {successCallback(cams);}, 1);
 	return new PendingOperation();
@@ -304,17 +365,23 @@ PhoneGap.addConstructor(function() {
 function FileSystemManager(){
     this.maxPathLength = 9999; //should be unlimited (HFS+ or FAT32 depending on OS)	
 	this.rootLocations = ["wgt-private", "documents", "images"];
+	this.successCallbacks = new Hash();
+	this.errorCallbacks = new Hash();
 }
 FileSystemManager.supportedModes = {"r":'', "rw":''};
 
-FileSystemManager.prototype.fileSystemSuccess = function(file){	
+FileSystemManager.prototype.fileSystemSuccessCallback = function(callbackID, file){
 	var tempFile = eval("(" + file + ")");
 	var bondiFile = JSONtoBondiFile(tempFile);
-	setTimeout(function(){bondi.filesystem.successCallback(bondiFile);},1);
+	var successCallback = this.successCallbacks.removeItem(callbackID);
+	this.errorCallbacks.removeItem(callbackID);
+	setTimeout(function(){successCallback(bondiFile);},1);
 }
 
-FileSystemManager.prototype.fileSystemError = function(error){
-	setTimeout(function() {bondi.filesystem.errorCallback(error);}, 1);
+FileSystemManager.prototype.fileSystemErrorCallback = function(callbackID, error){
+	var errorCallback = this.errorCallbacks.removeItem(callbackID);
+	this.successCallbacks.removeItem(callbackID);
+	setTimeout(function(){errorCallback(error);},1);
 }
 
 FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpace) {
@@ -331,24 +398,21 @@ FileSystemManager.prototype.getRootLocations = function() {
 }
 //BONDI 1.1
 FileSystemManager.prototype.resolve = function(successCallback, errorCallback, location, mode) {
-	if (typeof successCallback == "undefined" || successCallback == null)
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
-	if (mode == undefined)
-		mode = "rw";
-	else if ( !(mode in FileSystemManager.supportedModes)){
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
+	if (typeof successCallback == "undefined" || successCallback == null){		
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
 		return new PendingOperation();
 	}
-	bondi.filesystem.successCallback = successCallback;
-	bondi.filesystem.errorCallback = errorCallback;
-	HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',formatPath(location)+';'+mode);
+	if (mode == undefined)
+		mode = "rw";
+	if (!(mode in FileSystemManager.supportedModes) || location == undefined || location == null){
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
+		return new PendingOperation();
+	}
+		
+	successCallbackID = bondi.filesystem.successCallbacks.setItem(successCallback);
+	errorCallbackID = bondi.filesystem.errorCallbacks.setItem(errorCallback);
+	HTTP.get('http://localhost:8080/BONDIFilesystem/resolve',formatPath(location)+';'+mode+';'+successCallbackID+';'+errorCallbackID);
 	return new PendingOperation();
-}
-FileSystemManager.prototype.registerEventListener = function(listener) {
-	throw new Error("Not implemented");
-}
-FileSystemManager.prototype.unregisterEventListener = function(listener) {
-	throw new Error("Not implemented");
 }
 
 function FileSystemListener(){
@@ -418,27 +482,32 @@ BondiFile.prototype.open = function(mode, encoding) {
     return fileStream;
 }
 BondiFile.prototype.copyTo = function(successCallback, errorCallback, filePath, overwrite) {
-	if (typeof successCallback == "undefined" || successCallback == null)
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
-	if(this.isDirectory){
-		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
+	if (typeof successCallback == "undefined" || successCallback == null){
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
 		return new PendingOperation();
 	}
-	bondi.filesystem.successCallback = successCallback;
-	bondi.filesystem.errorCallback = errorCallback;
-	HTTP.get('http://localhost:8080/BONDIFilesystem/copyTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite);
+	if(this.isDirectory){
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.IO_ERROR));}, 1);
+		return new PendingOperation();
+	}
+
+	successCallbackID = bondi.filesystem.successCallbacks.setItem(successCallback);
+	errorCallbackID = bondi.filesystem.errorCallbacks.setItem(errorCallback);
+	HTTP.get('http://localhost:8080/BONDIFilesystem/copyTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite+';'+successCallbackID+';'+errorCallbackID);
 	return new PendingOperation();
 }
 BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, overwrite) {
-	if (typeof successCallback == "undefined" || successCallback == null)
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
-	if(this.isDirectory){
-		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
+	if (typeof successCallback == "undefined" || successCallback == null){
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
 		return new PendingOperation();
 	}
-	bondi.filesystem.successCallback = successCallback;
-	bondi.filesystem.errorCallback = errorCallback;
-	HTTP.get('http://localhost:8080/BONDIFilesystem/moveTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite);
+	if(this.isDirectory){
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.IO_ERROR));}, 1);
+		return new PendingOperation();
+	}
+	successCallbackID = bondi.filesystem.successCallbacks.setItem(successCallback);
+	errorCallbackID = bondi.filesystem.errorCallbacks.setItem(errorCallback);
+	HTTP.get('http://localhost:8080/BONDIFilesystem/moveTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite+';'+successCallbackID+';'+errorCallbackID);
 	return new PendingOperation();
 }
 
@@ -494,19 +563,21 @@ BondiFile.prototype.resolve = function(filePath) {
 }
 //BONDI1.1
 BondiFile.prototype.deleteDirectory = function(successCallback, errorCallback, recursive) {
-	if (typeof successCallback == "undefined" || successCallback == null)
-		errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));
+	if (typeof successCallback == "undefined" || successCallback == null){
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR));}, 1);
+		return new PendingOperation();
+	}
 	if  (this.mode == "r"){
-		errorCallback(GenericError(SecurityError.PERMISSION_DENIED_ERROR));
+		setTimeout(function() {errorCallback(new GenericError(SecurityError.PERMISSION_DENIED_ERROR));}, 1);		
 		return new PendingOperation();
 	}
 	if(this.isFile){
-		errorCallback(GenericError(DeviceAPIError.IO_ERROR));
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.IO_ERROR));}, 1);		
 		return new PendingOperation();
 	}
-	bondi.filesystem.successCallback = successCallback;
-	bondi.filesystem.errorCallback = errorCallback;
-	HTTP.get('http://localhost:8080/BONDIFilesystem/deleteDirectory',this.absolutePath+';'+recursive);
+	successCallbackID = bondi.filesystem.successCallbacks.setItem(successCallback);
+	errorCallbackID = bondi.filesystem.errorCallbacks.setItem(errorCallback);
+	HTTP.get('http://localhost:8080/BONDIFilesystem/deleteDirectory',this.absolutePath+';'+recursive+';'+successCallbackID+';'+errorCallbackID);
 	return new PendingOperation();
 }
 
@@ -657,6 +728,8 @@ DeviceStatusManager.prototype.listVocabularies = function() {
 }
 
 DeviceStatusManager.prototype.setDefaultVocabulary = function(vocabulary) {
+	if (vocabulary == "undefined" || vocabulary == null || vocabulary == "")
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
 	if (vocabulary != this.BONDIVocabulary)
 		throw new GenericError(DeviceAPIError.NOT_FOUND_ERROR);
 }
@@ -724,6 +797,8 @@ DeviceStatusManager.prototype.watchPropertyChange = function(pref, listener, opt
 	var isBatteryProperty = pref.property in arrayToObjectLiteral(this.listProperties({aspect:"Battery"}));
 	if ( !(typeof pref == "object" && isBatteryProperty) ) //only Battery properties can be  watched currently
 		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+	if (typeof options == "undefined" || options == null)
+		options = {};
 	bondi.devicestatus.listener = listener;
 	var id = HTTP.get('http://localhost:8080/BONDIDeviceStatus/watchPropertyChange',JSON.stringify(pref)+';'+JSON.stringify(options));
     return id;

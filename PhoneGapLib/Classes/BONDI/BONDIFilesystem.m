@@ -5,11 +5,11 @@
 //  Created by iptv on 24.11.09.
 //  Copyright 2009 Fraunhofer FOKUS. All rights reserved.
 //
-
 #import "BONDIFilesystem.h"
 #import "BONDIErrorCodes.h"
 #import "JSON.h"
 #import "NSData+Base64.h"
+#include <sys/attr.h>
 
 @implementation BONDIFilesystem
 @synthesize readFileHandles, writeFileHandles, updateFileHandles;
@@ -42,17 +42,29 @@
 - (void)createCallbackDelayed:(NSTimer*)timer {
 	NSLog(@"BONDIFilesystem.createCallbackDelayed");
 	NSArray *callbackInfo = [timer userInfo];
+	NSUInteger count = [callbackInfo count];
 	if (callbackInfo) {
 		NSString *callback = nil, *function = nil, *string = nil;
-		callback = [callbackInfo objectAtIndex:0];
-		function = [callbackInfo objectAtIndex:1];
-		string = [callbackInfo objectAtIndex:2];
+		int callbackID = -1;
+		
+		if (count > 0) callback = [callbackInfo objectAtIndex:0];
+		if (count > 1) function = [callbackInfo objectAtIndex:1];
+		if (count > 2) string = [callbackInfo objectAtIndex:2];
+		if (count > 3) callbackID = [[callbackInfo objectAtIndex:3] integerValue];
 		
 		NSString* jsString;
-		if (![function isEqualToString:@""])
-			jsString = [[NSString alloc] initWithFormat:@"%@(%@);", callback, function];
-		else if (string)
-			jsString = [[NSString alloc] initWithFormat:@"%@(\"%@\");", callback, string];
+		if (![function isEqualToString:@""]){
+			if (callbackID!=-1)
+				jsString = [[NSString alloc] initWithFormat:@"%@(%i,%@);", callback, callbackID, function];
+			else
+				jsString = [[NSString alloc] initWithFormat:@"%@(%@);", callback, function];
+		}
+		else if (string){
+			if (callbackID!=-1)
+				jsString = [[NSString alloc] initWithFormat:@"%@(%i, \"%@\");", callback, callbackID, string];
+			else
+				jsString = [[NSString alloc] initWithFormat:@"%@(\"%@\");", callback, string];
+		}
 		NSLog(@"%@",jsString);
 		[webView stringByEvaluatingJavaScriptFromString:jsString];
 		[jsString release];
@@ -75,6 +87,38 @@
 
 #pragma mark -
 #pragma mark FileSystemManager
+
+//Returns an NSDate object that represents the time the file
+//was created.  Returns nil for an error.
+
+typedef struct attrlist attrlist_t;
+
+struct CreationDateAttrBuf {
+    uint32_t                length;
+    struct timespec         creationDate;
+};
+typedef struct CreationDateAttrBuf CreationDateAttrBuf;
+
+- (NSDate*) fileCreationDate:(NSString*)inPath
+{
+    int                 err;
+    attrlist_t          attrList;
+    CreationDateAttrBuf attrBuf;
+	NSDate*     result = nil;
+	
+    memset(&attrList, 0, sizeof(attrList));
+    attrList.bitmapcount = ATTR_BIT_MAP_COUNT;
+    attrList.commonattr  = ATTR_CMN_CRTIME;
+	
+    err = getattrlist([inPath fileSystemRepresentation], &attrList, &attrBuf, sizeof(attrBuf), 0);
+	
+    if (err == 0 && attrBuf.length == sizeof(attrBuf)) 
+    {
+		result = [NSDate dateWithTimeIntervalSince1970:attrBuf.creationDate.tv_sec];
+    }
+	
+	return result;
+}
 
 - (NSString *)resolveLocation:(NSString *)location addMode:(NSString *)mode{
 	NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
@@ -104,15 +148,14 @@
 		else {
 			isDirectory = TRUE;
 		}
-		
 		NSString *fileInfo = [[NSString alloc]
-							  initWithFormat:@"{parent: %@, mode: '%@', readOnly: %@, isFile: %@, isDirectory: %@, created: '%@' , modified: '%@', path: '%@' , name: '%@' , absolutePath: '%@' , fileSize: %i}",
+							  initWithFormat:@"{parent: %@, mode: '%@', readOnly: %@, isFile: %@, isDirectory: %@, created: '%@' , modified: '%@', path: '%@' , name: '%@' , absolutePath: '%@' , fileSize: %i, metadata: '{}'}",
 							  parent, //parent is another JSON object
 							  mode,
 							  [self stringWithBool:[attributes fileIsAppendOnly]],
 							  [self stringWithBool:isFile],
-							  [self stringWithBool:isDirectory],
-							  [attributes fileCreationDate],
+							  [self stringWithBool:isDirectory],							  
+							  [self fileCreationDate:location],
 							  [attributes fileModificationDate],
 							  [location stringByDeletingLastPathComponent],
 							  [location lastPathComponent],
@@ -155,26 +198,28 @@
 		return nil;
 }
 
-//TODO: resolve mode parameter handling
 - (NSString *)resolve:(NSMutableArray*)arguments withDict:(NSMutableDictionary*)options{
 	NSUInteger argc = [arguments count];
 	NSString* successCallback = nil, *errorCallback = nil, *location = nil, *mode = nil;
+	NSNumber *successID, *errorID;
 	NSTimer *timer;
 	
-	successCallback = @"bondi.filesystem.fileSystemSuccess";
-	errorCallback =  @"bondi.filesystem.fileSystemError";
+	successCallback = @"bondi.filesystem.fileSystemSuccessCallback";
+	errorCallback =  @"bondi.filesystem.fileSystemErrorCallback";
 	if (argc > 0) location = [arguments objectAtIndex:0];
 	if (argc > 1) mode = [arguments objectAtIndex:1];
+	if (argc > 2) successID = [NSNumber numberWithInt:[[arguments objectAtIndex:2] integerValue]];
+	if (argc > 3) errorID = [NSNumber numberWithInt:[[arguments objectAtIndex:3]integerValue]];
+
+	NSLog(@"[INFO] BONDIFilesystem.resolve: %@ %@ %i %i",location,mode,[successID integerValue], [errorID integerValue]);	
 	
-	NSLog(@"[INFO] BONDIFilesystem.resolve: %@ %@",location,mode);	
-	
-	NSString *resolvedLocation = [self resolveLocation:location addMode:mode];
+	NSString *resolvedLocation = [self resolveLocation:location addMode:mode]; //mode handling is done in JS
 	if ([resolvedLocation isEqualToString:[NSString stringWithFormat:@"%i", INVALID_ARGUMENT_ERROR]]){
 		NSString *parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", INVALID_ARGUMENT_ERROR];
-		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 	} else {
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, successID,nil];		
 		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 	}
 	return nil;
@@ -231,16 +276,27 @@
 	NSUInteger argc = [arguments count];
 	NSString* successCallback = nil, *errorCallback = nil, *filePath = nil, *srcPath = nil;
 	BOOL overwrite;
+	NSNumber *successID, *errorID;
 	NSError *error = nil;
 	NSTimer *timer;
 	
-	successCallback = @"bondi.filesystem.fileSystemSuccess";
-	errorCallback =  @"bondi.filesystem.fileSystemError";
+	successCallback = @"bondi.filesystem.fileSystemSuccessCallback";
+	errorCallback =  @"bondi.filesystem.fileSystemErrorCallback";
 	if (argc > 0) srcPath = [arguments objectAtIndex:0];
 	if (argc > 1) filePath = [arguments objectAtIndex:1];
 	if (argc > 2) overwrite = [self boolWithString:[arguments objectAtIndex:2]];
-
-	NSLog(@"[INFO] BONDIFilesystem.copyTo: %@ %@ %i",srcPath,filePath,overwrite);
+	if (argc > 3) successID = [NSNumber numberWithInt:[[arguments objectAtIndex:3] integerValue]];
+	if (argc > 4) errorID = [NSNumber numberWithInt:[[arguments objectAtIndex:4]integerValue]];
+	NSLog(@"[INFO] BONDIFilesystem.copyTo: %@ %@ %i %i %i",srcPath,filePath,overwrite,[successID integerValue], [errorID integerValue]);
+	
+	BOOL isDir;
+	if ([fileManager fileExistsAtPath:filePath isDirectory:&isDir] && isDir) { //copying to a directory is forbidden
+		NSLog(@"is is attempted to copy to a directory");
+		NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;	
+	}
 	
 	if (overwrite) {
 		if ([fileManager fileExistsAtPath:filePath]){
@@ -248,7 +304,7 @@
 			if (error) {
 				NSLog(@"%@",[error localizedDescription]);
 				NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-				NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+				NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 				timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 				return nil;				
 			} 
@@ -257,7 +313,7 @@
 		if ([fileManager fileExistsAtPath:filePath]){ //overwrite is false and target file exists => IO_ERROR
 			NSLog(@"fileExistsAtPath %@",[error localizedDescription]);
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID,nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;
 		}
@@ -265,19 +321,19 @@
 	BOOL operationSuccess = [fileManager copyItemAtPath:srcPath toPath:filePath error:&error];
 	if (operationSuccess){
 		NSString *resolvedLocation = [self resolveLocation:filePath addMode:@"rw"];
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, successID, nil];
 		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}else{
 		if (error) {
 			NSLog(@"%@",[error localizedDescription]);
-			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)",IO_ERROR];
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;	
 		} else {
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", PERMISSION_DENIED_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID,nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;
 		}
@@ -292,22 +348,35 @@
 	NSUInteger argc = [arguments count];
 	NSString* successCallback = nil, *errorCallback = nil, *filePath = nil, *srcPath = nil;
 	BOOL overwrite;
+	NSNumber *successID, *errorID;
 	NSError *error = nil;
 	NSTimer *timer;
 	
-	successCallback = @"bondi.filesystem.fileSystemSuccess";
-	errorCallback =  @"bondi.filesystem.fileSystemError";
+	successCallback = @"bondi.filesystem.fileSystemSuccessCallback";
+	errorCallback =  @"bondi.filesystem.fileSystemErrorCallback";
 	if (argc > 0) srcPath = [arguments objectAtIndex:0];
 	if (argc > 1) filePath = [arguments objectAtIndex:1];
 	if (argc > 2) overwrite = [self boolWithString:[arguments objectAtIndex:2]];
-	NSLog(@"[INFO] BONDIFilesystem.moveTo: %@ %@ %i",srcPath,filePath,overwrite);
+	if (argc > 3) successID = [NSNumber numberWithInt:[[arguments objectAtIndex:3] integerValue]];
+	if (argc > 4) errorID = [NSNumber numberWithInt:[[arguments objectAtIndex:4]integerValue]];
+	NSLog(@"[INFO] BONDIFilesystem.moveTo: %@ %@ %i %i %i",srcPath,filePath,overwrite,[successID integerValue], [errorID integerValue]);
+	
+	BOOL isDir;
+	if ([fileManager fileExistsAtPath:filePath isDirectory:&isDir] && isDir) { //moving to a directory is forbidden
+		NSLog(@"is is attempted to move to a directory");
+		NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
+		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
+		return nil;	
+	}
+	
 	if (overwrite) {
 		if ([fileManager fileExistsAtPath:filePath]){
 			[fileManager removeItemAtPath:filePath error:&error];
 			if (error) {
 				NSLog(@"%@",[error localizedDescription]);
 				NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-				NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+				NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 				timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 				return nil;
 			} 
@@ -316,7 +385,7 @@
 		if ([fileManager fileExistsAtPath:filePath]){ //overwrite is false and target file exists => IO_ERROR
 			NSLog(@"%@",[error localizedDescription]);
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID,  nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;
 		}
@@ -324,19 +393,19 @@
 	BOOL operationSuccess = [fileManager moveItemAtPath:srcPath toPath:filePath error:&error];
 	if (operationSuccess){
 		NSString *resolvedLocation = [self resolveLocation:filePath addMode:@"rw"];
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, successID, nil];		
 		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}else{
 		if (error) {
 			NSLog(@"%@",[error localizedDescription]);
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;	
 		} else {
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", PERMISSION_DENIED_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;
 		}
@@ -400,19 +469,23 @@
 	NSError *error = nil;
 	NSString* successCallback = nil, *errorCallback = nil, *path = nil, *resolvedLocation = nil;
 	NSTimer *timer;
-	BOOL recursive, success;
+	BOOL recursive, success;	
+	NSNumber *successID, *errorID;
+
 	
-	successCallback = @"bondi.filesystem.fileSystemSuccess";
-	errorCallback =  @"bondi.filesystem.fileSystemError";
+	successCallback = @"bondi.filesystem.fileSystemSuccessCallback";
+	errorCallback =  @"bondi.filesystem.fileSystemErrorCallback";
 	if (argc > 0) path = [arguments objectAtIndex:0];
 	if (argc > 1) recursive = [self boolWithString:[arguments objectAtIndex:1]];
-	NSLog(@"[INFO] BONDIFilesystem.deleteDirectory:%@ %d",path, recursive);
+	if (argc > 2) successID = [NSNumber numberWithInt:[[arguments objectAtIndex:2] integerValue]];
+	if (argc > 3) errorID = [NSNumber numberWithInt:[[arguments objectAtIndex:3]integerValue]];
+	NSLog(@"[INFO] BONDIFilesystem.deleteDirectory:%@ %d %i %i",path, recursive, [successID integerValue], [errorID integerValue]);
 	
 	//only empty dirs can be deleted non-recursively
 	NSArray *dir = [fileManager contentsOfDirectoryAtPath:path error:&error];
 	if (dir==nil || ([dir lastObject]!=nil && !recursive)) { //not existing dir or not empty and not recursive
 		NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}else {
@@ -421,7 +494,7 @@
 		if (!success){
 			NSLog(@"%@",[error description]);
 			NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", IO_ERROR];
-			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+			NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 			timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 			return nil;
 		}
@@ -430,13 +503,13 @@
 	if (error){
 		NSLog(@"%@",[error description]);
 		NSString * parameter = [[NSString alloc] initWithFormat:@"new GenericError(%i)", PERMISSION_DENIED_ERROR];
-		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:errorCallback, parameter, @"", errorID, nil];		
 		timer = [NSTimer scheduledTimerWithTimeInterval:0.0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}
 	
 	if (success){
-		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, nil];		
+		NSArray *callbackInfo = [NSArray arrayWithObjects:successCallback, @"", resolvedLocation, successID, nil];		
 		timer = [NSTimer scheduledTimerWithTimeInterval:0 target:self selector:@selector(createCallbackDelayed:) userInfo:callbackInfo repeats:NO];
 		return nil;
 	}
