@@ -493,7 +493,10 @@ BondiFile.prototype.copyTo = function(successCallback, errorCallback, filePath, 
 
 	successCallbackID = bondi.filesystem.successCallbacks.setItem(successCallback);
 	errorCallbackID = bondi.filesystem.errorCallbacks.setItem(errorCallback);
-	HTTP.get('http://localhost:8080/BONDIFilesystem/copyTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite+';'+successCallbackID+';'+errorCallbackID);
+	if (filePath = formatPath(filePath))
+		HTTP.get('http://localhost:8080/BONDIFilesystem/copyTo',this.absolutePath+';'+filePath+';'+overwrite+';'+successCallbackID+';'+errorCallbackID);
+	else
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.IO_ERROR));}, 1);
 	return new PendingOperation();
 }
 BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, overwrite) {
@@ -507,21 +510,34 @@ BondiFile.prototype.moveTo = function(successCallback, errorCallback, filePath, 
 	}
 	successCallbackID = bondi.filesystem.successCallbacks.setItem(successCallback);
 	errorCallbackID = bondi.filesystem.errorCallbacks.setItem(errorCallback);
-	HTTP.get('http://localhost:8080/BONDIFilesystem/moveTo',this.absolutePath+';'+formatPath(filePath)+';'+overwrite+';'+successCallbackID+';'+errorCallbackID);
+	if (filePath = formatPath(filePath))
+		HTTP.get('http://localhost:8080/BONDIFilesystem/moveTo',this.absolutePath+';'+filePath+';'+overwrite+';'+successCallbackID+';'+errorCallbackID);
+	else
+		setTimeout(function() {errorCallback(new GenericError(DeviceAPIError.IO_ERROR));}, 1);
 	return new PendingOperation();
 }
 
 function formatPath(path){
-	if (path.indexOf("/") == 0)
-		return path;
-	else
-		return "/"+path;
+	if (path.indexOf("\0") == -1){ //invalid character for iPhone's filesystem
+		if (path.indexOf("/") == 0)
+			return path;
+		else
+			return "/"+path;
+	} else
+			return null;
 }
 
 BondiFile.prototype.createDirectory = function(dirPath) {
 	if  (this.mode == "r")
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/createDirectory',this.absolutePath+formatPath(dirPath));
+	var returnString;
+	if (dirPath = formatPath(dirPath))
+		returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/createDirectory',this.absolutePath+formatPath(dirPath));
+	else{
+		throw new GenericError(DeviceAPIError.IO_ERROR);
+		return null;
+	}
+	
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 		return null;
@@ -539,7 +555,13 @@ BondiFile.prototype.createDirectory = function(dirPath) {
 BondiFile.prototype.createFile = function(filePath) {
 	if  (this.mode == "r")
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
-	var returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/createFile',this.absolutePath+formatPath(filePath));
+	var returnString;
+	if (filePath = formatPath(filePath))
+		returnString = HTTP.get('http://localhost:8080/BONDIFilesystem/createFile',this.absolutePath+formatPath(filePath));
+	else{
+		throw new GenericError(DeviceAPIError.IO_ERROR);
+		return null;
+	}
 	if (returnString == SecurityError.PERMISSION_DENIED_ERROR){
 		throw new GenericError(SecurityError.PERMISSION_DENIED_ERROR);
 		return null;
