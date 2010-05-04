@@ -97,7 +97,7 @@
 	
 	if (watchOptionsDictionary) {
 		minTimeout =[[watchOptionsDictionary objectForKey:@"minTimeout"] unsignedIntValue];
-		if (!minTimeout) minTimeout= 0;
+		if (!minTimeout) minTimeout= 1000; //0 as default value will result in 0.1 ms interval => too much
 		maxTimeout = [[watchOptionsDictionary objectForKey:@"maxTimeout"] unsignedIntValue];
 		if (!maxTimeout) maxTimeout = NSIntegerMax;
 		callCallbackOnRegister = [[watchOptionsDictionary objectForKey:@"callCallbackOnRegister"] boolValue];
