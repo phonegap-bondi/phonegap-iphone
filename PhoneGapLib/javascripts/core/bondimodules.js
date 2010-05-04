@@ -206,15 +206,6 @@ BondiCamera.prototype.getSupportedFeatures = function() {
 BondiCamera.prototype.setFeature = function(featureID, valueID) {
 	throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
 }
-BondiCamera.prototype.requestLiveVideo = function(successCallback, errorCallback) {
-	throw new Error("Not implemented");
-}
-BondiCamera.prototype.beginRecording = function(successCallback, errorCallback, capturedCallback, options) {
-	throw new Error("Not implemented");
-}
-BondiCamera.prototype.endRecording = function(successCallback, errorCallback) {
-	throw new Error("Not implemented");
-}
 
 function CameraManager() {
 	this._cams = [];
@@ -245,6 +236,7 @@ PhoneGap.addConstructor(function() {
 // bondi geolocation
 function BONDIGeolocation() {
     this.lastPosition = null;
+	 this.lastError = null;
 	__proxyObj(navigator.geolocation, bondi.geolocation,
 			   ["setLocation","getCurrentPosition","watchPosition",
 				"clearWatch","setError","start","stop"]);
@@ -303,7 +295,10 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 								dis.stop();
 								setTimeout(function(){successCallback(dis.lastPosition);},1);
 							} 
-
+							else if(dis.lastError != null)
+							{
+								clearInterval(timer);
+							}
 							}, interval);
 };
 
@@ -324,11 +319,13 @@ BONDIGeolocation.prototype.clearWatch = function(watchId) {
 
 BONDIGeolocation.prototype.setLocation = function(position) 
 {
+	 this.lastError = null;
     this.lastPosition = position;	
 };
 
 BONDIGeolocation.prototype.setError = function(error) {
-    var errorCallback = bondi.geolocation.errorCallback;
+	this.lastError = error;
+	var errorCallback = bondi.geolocation.errorCallback;
 	if (errorCallback)		
 		setTimeout(function(){errorCallback(error);},1);
 };
@@ -416,14 +413,20 @@ FileSystemManager.prototype.resolve = function(successCallback, errorCallback, l
 	return new PendingOperation();
 }
 
+FileSystemManager.prototype.registerEventListener = function (listener) {	
+	if (! (typeof listener == "object" && typeof listener.mountEvent == "function"))
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+}
+
+FileSystemManager.prototype.unregisterEventListener = function (listener) {	
+	if (! (typeof listener == "object" && typeof listener.mountEvent == "function"))
+		throw new GenericError(DeviceAPIError.INVALID_ARGUMENT_ERROR);
+}
+
 function FileSystemListener(){
 }
-FileSystemListener.prototype.mountEvent = function(location) {
-	throw new Error("Not implemented");
-}
-FileSystemListener.prototype.unmountEvent = function(location) {
-	throw new Error("Not implemented");
-}
+FileSystemListener.prototype.mountEvent = function(location) {}
+FileSystemListener.prototype.unmountEvent = function(location) {}
 
 function BondiFile(){
     this.parent = null;
