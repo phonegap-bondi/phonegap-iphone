@@ -245,6 +245,11 @@ PhoneGap.addConstructor(function() {
 // bondi geolocation
 function BONDIGeolocation() {
     this.lastPosition = null;
+	__proxyObj(navigator.geolocation, bondi.geolocation,
+			   ["setLocation","getCurrentPosition","watchPosition",
+				"clearWatch","setError","start","stop"]);
+	if (typeof Coordinates.altitudeAccuracy == "undefined")
+		Coordinates.prototype.altitudeAccuracy = null;
 };
 
 BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorCallback, options) 
@@ -271,38 +276,40 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 	bondi.geolocation.successCallback = successCallback;
 	bondi.geolocation.errorCallback = errorCallback;
 	
-	var referenceTime = 0;
+	var timeout = -1;
+	var maximumAge = 0;
+	if (options.timeout)
+		timeout = options.timeout;
 	
 	this.start(options);
 	
-    var timeout = 20000; // defaults
-    var interval = 500;
-	
     var dis = this;
+	var interval = 500;
     var delay = 0;
     var timer = setInterval(function() {
 							delay += interval;
-							
-							if (typeof(dis.lastPosition) == 'object' && dis.lastPosition.timestamp > referenceTime) 
-							{
-							clearInterval(timer);
-							successCallback(dis.lastPosition);
-							
-							} 
-							else if (delay > timeout) 
-							{
-							clearInterval(timer);
-							errorCallback("Error Timeout");
+							if (delay > timeout && timeout != -1) 
+							{	
+								clearInterval(timer);
+								dis.stop();
+								var error = new PositionError();
+								error.code = PositionError.TIMEOUT;
+								error.message = "Retrieving a position timed out.";
+								setTimeout(function(){errorCallback(error);},1);
 							}
+							else if (typeof(dis.lastPosition) == 'object' && dis.lastPosition.timestamp > 0) 
+							{
+								clearInterval(timer);
+								dis.stop();
+								setTimeout(function(){successCallback(dis.lastPosition);},1);
+							} 
+
 							}, interval);
 };
 
 BONDIGeolocation.prototype.watchPosition = function(successCallback, errorCallback, options) {
 	this.getCurrentPosition(successCallback, errorCallback, options);
 	var frequency = 10000;
-	if (typeof(options) == 'object' && options.frequency)
-		frequency = options.frequency;
-	
 	var that = this;
 	return setInterval(function() 
 					   {
@@ -320,18 +327,18 @@ BONDIGeolocation.prototype.setLocation = function(position)
     this.lastPosition = position;	
 };
 
-BONDIGeolocation.prototype.setError = function(message) {
+BONDIGeolocation.prototype.setError = function(error) {
     var errorCallback = bondi.geolocation.errorCallback;
-	if (errorCallback)
-		errorCallback(error);
+	if (errorCallback)		
+		setTimeout(function(){errorCallback(error);},1);
 };
 
 BONDIGeolocation.prototype.start = function(args) {
-	HTTP.get('http://localhost:8080/BONDIGeolocation/startLocation',args);
+	HTTP.get('http://localhost:8080/BONDIGeolocation/start',JSON.stringify(args));	
 };
 
 BONDIGeolocation.prototype.stop = function() {
-    HTTP.get('http://localhost:8080/BONDIGeolocation/stopLocation');
+    HTTP.get('http://localhost:8080/BONDIGeolocation/stop');
 };
 
 // replace origObj's functions ( listed in funkList ) with the same method name on proxyObj
@@ -351,13 +358,7 @@ function __proxyObj(origObj,proxyObj,funkList)
 PhoneGap.addConstructor(function() {
 						if (typeof bondi.geolocation == "undefined") 
 						{
-						bondi.geolocation = new BONDIGeolocation();
-						__proxyObj(navigator.geolocation, bondi.geolocation,
-								   ["setLocation","getCurrentPosition","watchPosition",
-									"clearWatch","setError","start","stop"]);
-						
-						if (typeof Coordinates.altitudeAccuracy == "undefined")
-							Coordinates.prototype.altitudeAccuracy = null;						
+						bondi.geolocation = new BONDIGeolocation();						
 						}
 });
 
@@ -385,7 +386,7 @@ FileSystemManager.prototype.fileSystemErrorCallback = function(callbackID, error
 }
 
 FileSystemManager.prototype.getDefaultLocation = function(specifier, minFreeSpace) {
-    if (specifier in arrayToObjectLiteral(this.rootLocations)) {
+    if ( (typeof minFreeSpace == "number" || typeof minFreeSpace == "undefined") && specifier in arrayToObjectLiteral(this.rootLocations)) {
 		var defaultLocation = HTTP.get('http://localhost:8080/BONDIFilesystem/getDefaultLocation',specifier);
 		return defaultLocation;
     }

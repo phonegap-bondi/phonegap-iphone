@@ -9,8 +9,15 @@
 #import <Foundation/Foundation.h>
 #import "Location.h"
 
-@interface BONDIGeolocation : Location {
+extern NSInteger const PERMISSION_DENIED;
+extern NSInteger const POSITION_UNAVAILABLE;
+extern NSInteger const TIMEOUT;
 
+@interface BONDIGeolocation : PhoneGapCommand <CLLocationManagerDelegate>  {
+	CLLocationManager *locationManager;
+    BOOL              __locationStarted;
 }
+
+@property (nonatomic, retain) CLLocationManager *locationManager;
 
 @end
