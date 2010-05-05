@@ -298,6 +298,7 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 							else if(dis.lastError != null)
 							{
 								clearInterval(timer);
+								dis.stop();
 							}
 							}, interval);
 };
