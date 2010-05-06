@@ -130,6 +130,7 @@ bondi.requestFeature = function ( successCallback,  errorCallback,  name){
 bondi.getFeatures = function () {
     return ["http://bondi.omtp.org/api/1.1/filesystem.read",
 			"http://bondi.omtp.org/api/1.1/filesystem.write",
+            "http://bondi.omtp.org/api/1.1/devicestatus",
 			"http://bondi.omtp.org/api/1.1/camera.access",
 			"http://bondi.omtp.org/api/1.1/camera.capture",
 			"http://bondi.omtp.org/api/1.1/geolocation.position"];
