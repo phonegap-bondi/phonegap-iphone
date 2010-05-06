@@ -118,7 +118,7 @@ bondi.requestFeature = function ( successCallback,  errorCallback,  name){
 		successCallback(new FileSystemManager());
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/devicestatus'))
 		successCallback(new DeviceStatusManager());		
-	else if(name.startsWith('http://bondi.omtp.org/api/1.1/camera'))
+	else if(name.startsWith('http://bondi.omtp.org/api/1.1/camera') && !(name == 'http://bondi.omtp.org/api/1.1/camera.record'))
 		successCallback(new CameraManager());	
 	else if(name.startsWith('http://bondi.omtp.org/api/1.1/geolocation'))
 		successCallback(bondi.geolocation);
@@ -128,10 +128,11 @@ bondi.requestFeature = function ( successCallback,  errorCallback,  name){
 };
 
 bondi.getFeatures = function () {
-    return ["http://bondi.omtp.org/api/1.1/filesystem", 
-    "http://bondi.omtp.org/api/1.1/devicestatus", 
-    "http://bondi.omtp.org/api/1.1/camera", 
-    "http://bondi.omtp.org/api/1.1/geolocation"];
+    return ["http://bondi.omtp.org/api/1.1/filesystem.read",
+			"http://bondi.omtp.org/api/1.1/filesystem.write",
+			"http://bondi.omtp.org/api/1.1/camera.access",
+			"http://bondi.omtp.org/api/1.1/camera.capture",
+			"http://bondi.omtp.org/api/1.1/geolocation.position"];
 }
 
 GenericError = function(code) {
