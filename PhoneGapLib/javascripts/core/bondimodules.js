@@ -282,7 +282,12 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
     var delay = 0;
     var timer = setInterval(function() {
 							delay += interval;
-							if (delay > timeout && timeout != -1) 
+							if(dis.lastError != null)
+							{
+								clearInterval(timer);
+								dis.stop();
+							}
+							else if (delay > timeout && timeout != -1) 
 							{	
 								clearInterval(timer);
 								dis.stop();
@@ -296,11 +301,6 @@ BONDIGeolocation.prototype.getCurrentPosition = function(successCallback, errorC
 								clearInterval(timer);
 								dis.stop();
 								setTimeout(function(){successCallback(dis.lastPosition);},1);
-							} 
-							else if(dis.lastError != null)
-							{
-								clearInterval(timer);
-								dis.stop();
 							}
 							}, interval);
 };
@@ -322,7 +322,7 @@ BONDIGeolocation.prototype.clearWatch = function(watchId) {
 
 BONDIGeolocation.prototype.setLocation = function(position) 
 {
-	 this.lastError = null;
+	this.lastError = null;
     this.lastPosition = position;	
 };
 
