@@ -9,6 +9,7 @@
 #import "Camera.h"
 #import "NSData+Base64.h"
 #import "Categories.h"
+#import <MobileCoreServices/UTCoreTypes.h>
 
 @implementation Camera
 
@@ -48,6 +49,16 @@
 	pickerController.quality = [options integerValueForKey:@"quality" defaultValue:100 withRange:NSMakeRange(0, 100)];
 	
 	[[super appViewController] presentModalViewController:pickerController animated:YES];
+}
+
+- (void)imagePickerController:(UIImagePickerController*)picker didFinishPickingMediaWithInfo:(NSDictionary*)info
+{
+	NSString* mediaType = [info objectForKey:UIImagePickerControllerMediaType];
+	if ([mediaType isEqualToString:(NSString*)kUTTypeImage])
+	{
+		UIImage* image = [info objectForKey:UIImagePickerControllerOriginalImage];
+		[self imagePickerController:picker didFinishPickingImage:image editingInfo:info];
+	}
 }
 
 - (void)imagePickerController:(UIImagePickerController*)picker didFinishPickingImage:(UIImage*)image editingInfo:(NSDictionary*)editingInfo
@@ -121,7 +132,7 @@
 
 @implementation CameraPicker
 
-@synthesize quality;
+@synthesize quality, postUrl;
 @synthesize successCallback;
 @synthesize errorCallback;
 

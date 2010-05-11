@@ -4,7 +4,6 @@
 #import "JSON/JSON.h"
 
 #import "Location.h"
-#import "Device.h"
 #import "Sound.h"
 #import "Contacts.h"
 #import "DebugConsole.h"
@@ -53,6 +52,7 @@
 - (void) javascriptAlert:(NSString*)text;
 - (BOOL) execute:(InvokedUrlCommand*)command;
 - (NSString*) appURLScheme;
+- (NSDictionary*) deviceProperties;
 
 + (NSDictionary*)getBundlePlist:(NSString *)plistName;
 + (NSString*) wwwFolderName;

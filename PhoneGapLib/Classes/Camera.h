@@ -14,11 +14,13 @@
 	NSString* successCallback;
 	NSString* errorCallback;
 	NSInteger quality;
+	NSString* postUrl;
 }
 
-@property NSInteger quality;
-@property (retain) NSString* successCallback;
-@property (retain) NSString* errorCallback;
+@property (assign) NSInteger quality;
+@property (copy)   NSString* successCallback;
+@property (copy)   NSString* errorCallback;
+@property (copy)   NSString* postUrl;
 
 - (void) dealloc;
 

@@ -238,10 +238,7 @@ PhoneGap.addConstructor(function() {
 // bondi geolocation
 function BONDIGeolocation() {
     this.lastPosition = null;
-	 this.lastError = null;
-	__proxyObj(navigator.geolocation, bondi.geolocation,
-			   ["setLocation","getCurrentPosition","watchPosition",
-				"clearWatch","setError","start","stop"]);
+	this.lastError = null;
 	if (typeof Coordinates.altitudeAccuracy == "undefined")
 		Coordinates.prototype.altitudeAccuracy = null;
 };
@@ -340,20 +337,6 @@ BONDIGeolocation.prototype.start = function(args) {
 BONDIGeolocation.prototype.stop = function() {
     HTTP.get('http://localhost:8080/BONDIGeolocation/stop');
 };
-
-// replace origObj's functions ( listed in funkList ) with the same method name on proxyObj
-function __proxyObj(origObj,proxyObj,funkList)
-{
-    var replaceFunk = function(org,proxy,fName)
-    { 
-        org[fName] = function()
-        { 
-			return proxy[fName].apply(proxy,arguments); 
-        }; 
-    };
-	
-    for(var v in funkList) { replaceFunk(origObj,proxyObj,funkList[v]);}
-}
 
 PhoneGap.addConstructor(function() {
 						if (typeof bondi.geolocation == "undefined") 
